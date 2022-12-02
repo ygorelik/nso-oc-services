@@ -1,0 +1,70 @@
+module oc-service-discovery {
+
+  namespace "http://cisco.com/nso/oc-service-discovery";
+  prefix oc-service-discovery;
+
+  import tailf-common {
+    prefix tailf;
+  }
+  import tailf-ncs {
+    prefix ncs;
+  }
+
+  description
+    "Service discovery action model";
+
+  revision 2022-10-27 {
+    description
+      "Initial revision.";
+  }
+
+  augment "/ncs:devices/ncs:device" {
+
+    tailf:action discover-oc-service {
+      tailf:actionpoint discover-oc-service-action-point;
+      tailf:info "Discover openconfig services action";
+
+      input {
+        leaf service {
+          tailf:info
+            "Service to be discovered; corresponding service package must be installed in NSO";
+          tailf:cli-drop-node-name;
+          type enumeration {
+            enum acl;
+            enum interfaces;
+            enum network-instance;
+            enum system;
+            enum stp;
+          }
+          mandatory true;
+        }
+
+        leaf nso-action {
+          tailf:info
+            "Action that NSO should perform on devices";
+          type enumeration {
+            enum dry-run {
+              tailf:info
+                "Dry-run commit with outformat in CLI";
+            }
+            enum reconcile {
+              tailf:info
+                "Reconcile commit with keep-non-service-config behaviour";
+            }
+            enum reconcile-discard-non-service-config {
+              tailf:info
+                "Reconcile commit with discard-non-service-config behaviour";
+            }
+          }
+          default dry-run;
+        }
+      }
+      output {
+        leaf result {
+          type string;
+        }
+      }
+    }
+  }
+
+}

@@ -40,4 +40,5 @@ mdd/load-dir/
 
 ### Test env ###
 test-oc-services/
-oc-service-dicovery/python/test_objects.py
+oc-service-dicovery/python/actions/test_objects.py
+oc-service-dicovery/load-dir

@@ -1,0 +1,14 @@
+<ncs-package xmlns="http://tail-f.com/ns/ncs-packages">
+  <name>oc-service-discovery</name>
+  <package-version>1.0</package-version>
+  <description>Python package to perform openconfig service discovery and reconciliation</description>
+  <ncs-min-version>5.8</ncs-min-version>
+
+  <!-- service discovery action -->
+  <component>
+    <name>main</name>
+    <application>
+      <python-class-name>actions.discover_oc_service.DiscoverOcServiceMain</python-class-name>
+    </application>
+  </component>
+</ncs-package>
