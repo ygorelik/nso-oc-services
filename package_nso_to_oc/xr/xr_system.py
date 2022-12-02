@@ -64,9 +64,10 @@ def xr_system_services(config_before: dict, config_leftover: dict) -> None:
     else:
         openconfig_system_services["openconfig-system-ext:config"]["openconfig-system-ext:service-udp-small-servers"] = False
 
+
 def xr_system_config(config_before: dict, config_leftover: dict) -> None:
     """
-    Translates NSO XE NED to MDD OpenConfig System Config
+    Translates NSO XR NED to MDD OpenConfig System Config
     """
     openconfig_system_config = openconfig_system["openconfig-system:system"]["openconfig-system:config"]
     default_secret = config_before.get("tailf-ned-cisco-ios-xr:line", {}).get("default", {}).get("secret", {})
@@ -108,6 +109,7 @@ def xr_system_config(config_before: dict, config_leftover: dict) -> None:
         openconfig_system_config["openconfig-system-ext:console-exec-timeout-seconds"] = seconds
         del config_leftover["tailf-ned-cisco-ios-xr:line"]["console"]["exec-timeout"]
 
+
 def main(before: dict, leftover: dict, translation_notes: list = []) -> dict:
     """
     Translates NSO Device configurations to MDD OpenConfig configurations.
@@ -121,6 +123,7 @@ def main(before: dict, leftover: dict, translation_notes: list = []) -> dict:
 
     :param before: Original NSO Device configuration: dict
     :param leftover: NSO Device configuration minus configs replaced with MDD OC: dict
+    :param translation_notes:
     :return: MDD Openconfig System configuration: dict
     """
 
@@ -135,7 +138,7 @@ if __name__ == "__main__":
     sys.path.append("../../")
     sys.path.append("../../../")
 
-    if (find_spec("package_nso_to_oc") is not None):
+    if find_spec("package_nso_to_oc") is not None:
         from package_nso_to_oc.xr import common_xr
         from package_nso_to_oc import common
     else:
@@ -148,10 +151,11 @@ if __name__ == "__main__":
     config_remaining_name = "configuration_remaining"
     oc_name = "openconfig_system"
     common.print_and_test_configs("xr1", config_before_dict, config_leftover_dict, openconfig_system, 
-        config_name, config_remaining_name, oc_name, system_notes)
+                                  config_name, config_remaining_name, oc_name, system_notes)
 else:
-    # This is needed for now due to top level __init__.py. We need to determine if contents in __init__.py is still necessary.
-    if (find_spec("package_nso_to_oc") is not None):
+    # This is needed for now due to top level __init__.py.
+    # We need to determine if contents in __init__.py is still necessary.
+    if find_spec("package_nso_to_oc") is not None:
         from package_nso_to_oc.xr import common_xr
         from package_nso_to_oc import common
     else:

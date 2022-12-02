@@ -14,9 +14,7 @@ NSO_PASSWORD
 NSO_DEVICE - NSO device name for configuration translation
 TEST - True or False. True enables sending the OpenConfig to the NSO server after generation
 """
-
 import sys
-from pathlib import Path
 from importlib.util import find_spec
 
 system_notes = []
@@ -48,6 +46,7 @@ openconfig_system = {
         }
     }
 }
+
 
 def xe_system_services(config_before: dict, config_leftover: dict) -> None:
     """
@@ -167,14 +166,18 @@ def xe_system_services(config_before: dict, config_leftover: dict) -> None:
         del config_leftover["tailf-ned-cisco-ios:service"]["password-encryption"]
     else:
         openconfig_system_services["openconfig-system-ext:config"]["openconfig-system-ext:service-password-encryption"] = False
+
+
 def xe_system_config(config_before: dict, config_leftover: dict) -> None:
     """
     Translates NSO XE NED to MDD OpenConfig System Config
     """
     openconfig_system_config = openconfig_system["openconfig-system:system"]["openconfig-system:config"]
 
-    openconfig_system_config["openconfig-system:hostname"] = config_before["tailf-ned-cisco-ios:hostname"]
-    del config_leftover["tailf-ned-cisco-ios:hostname"]
+    if "tailf-ned-cisco-ios:hostname" in config_before:
+        openconfig_system_config["openconfig-system:hostname"] = config_before["tailf-ned-cisco-ios:hostname"]
+    if "tailf-ned-cisco-ios:hostname" in config_leftover:
+        del config_leftover["tailf-ned-cisco-ios:hostname"]
 
     if config_before.get("tailf-ned-cisco-ios:banner", {}).get("login"):
         openconfig_system_config["openconfig-system:login-banner"] = config_before.get("tailf-ned-cisco-ios:banner",
@@ -205,7 +208,8 @@ def xe_system_config(config_before: dict, config_leftover: dict) -> None:
             "tailf-ned-cisco-ios:enable", {}).get("secret", {}).get("secret")
         del config_leftover["tailf-ned-cisco-ios:enable"]
 
-    if config_before["tailf-ned-cisco-ios:line"]["console"][0].get("exec-timeout"):
+    if "tailf-ned-cisco-ios:line" in config_before and\
+            config_before["tailf-ned-cisco-ios:line"]["console"][0].get("exec-timeout"):
         seconds = config_before["tailf-ned-cisco-ios:line"]["console"][0]["exec-timeout"].get("minutes", 0) * 60
         seconds += config_before["tailf-ned-cisco-ios:line"]["console"][0]["exec-timeout"].get("seconds", 0)
         openconfig_system_config["openconfig-system-ext:console-exec-timeout-seconds"] = seconds
@@ -238,21 +242,22 @@ def xe_system_ssh_server(config_before: dict, config_leftover: dict) -> None:
             openconfig_system_ssh_server_config["openconfig-system-ext:ssh-source-interface"] = f"{i}{n}"
         del config_leftover["tailf-ned-cisco-ios:ip"]["ssh"]["source-interface"]
 
-    if config_before["tailf-ned-cisco-ios:line"]["vty"][0].get("exec-timeout"):
-        seconds = config_before["tailf-ned-cisco-ios:line"]["vty"][0]["exec-timeout"].get("minutes", 0) * 60
-        seconds += config_before["tailf-ned-cisco-ios:line"]["vty"][0]["exec-timeout"].get("seconds", 0)
-        openconfig_system_ssh_server_config["openconfig-system:timeout"] = seconds
-        del config_leftover["tailf-ned-cisco-ios:line"]["vty"][0]["exec-timeout"]
+    if "tailf-ned-cisco-ios:line" in config_before:
+        if config_before["tailf-ned-cisco-ios:line"]["vty"][0].get("exec-timeout"):
+            seconds = config_before["tailf-ned-cisco-ios:line"]["vty"][0]["exec-timeout"].get("minutes", 0) * 60
+            seconds += config_before["tailf-ned-cisco-ios:line"]["vty"][0]["exec-timeout"].get("seconds", 0)
+            openconfig_system_ssh_server_config["openconfig-system:timeout"] = seconds
+            del config_leftover["tailf-ned-cisco-ios:line"]["vty"][0]["exec-timeout"]
 
-    if config_before["tailf-ned-cisco-ios:line"]["vty"][0].get("absolute-timeout"):
-        openconfig_system_ssh_server_config["openconfig-system-ext:absolute-timeout-minutes"] = \
-        config_before["tailf-ned-cisco-ios:line"]["vty"][0]["absolute-timeout"]
-        del config_leftover["tailf-ned-cisco-ios:line"]["vty"][0]["absolute-timeout"]
+        if config_before["tailf-ned-cisco-ios:line"]["vty"][0].get("absolute-timeout"):
+            openconfig_system_ssh_server_config["openconfig-system-ext:absolute-timeout-minutes"] = \
+                config_before["tailf-ned-cisco-ios:line"]["vty"][0]["absolute-timeout"]
+            del config_leftover["tailf-ned-cisco-ios:line"]["vty"][0]["absolute-timeout"]
 
-    if config_before["tailf-ned-cisco-ios:line"]["vty"][0].get("session-limit"):
-        openconfig_system_ssh_server_config["openconfig-system:session-limit"] = config_before["tailf-ned-cisco-ios:line"]["vty"][0].get(
-            "session-limit")
-        del config_leftover["tailf-ned-cisco-ios:line"]["vty"][0]["session-limit"]
+        if config_before["tailf-ned-cisco-ios:line"]["vty"][0].get("session-limit"):
+            openconfig_system_ssh_server_config["openconfig-system:session-limit"] = config_before["tailf-ned-cisco-ios:line"]["vty"][0].get(
+                "session-limit")
+            del config_leftover["tailf-ned-cisco-ios:line"]["vty"][0]["session-limit"]
 
 
 def xe_add_oc_ntp_server(before_ntp_server_list: list, after_ntp_server_list: list, openconfig_ntp_server_list: list,
@@ -415,8 +420,9 @@ if __name__ == "__main__":
     common.print_and_test_configs("xe1", config_before_dict, config_leftover_dict, openconfig_system, 
         config_name, config_remaining_name, oc_name, system_notes)
 else:
-    # This is needed for now due to top level __init__.py. We need to determine if contents in __init__.py is still necessary.
-    if (find_spec("package_nso_to_oc") is not None):
+    # This is needed for now due to top level __init__.py.
+    # We need to determine if contents in __init__.py is still necessary.
+    if find_spec("package_nso_to_oc") is not None:
         from package_nso_to_oc.xe import common_xe
         from package_nso_to_oc import common
     else:

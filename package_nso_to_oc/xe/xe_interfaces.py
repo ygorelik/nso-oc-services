@@ -817,6 +817,7 @@ def main(before: dict, leftover: dict, translation_notes: list = []) -> dict:
 
     :param before: Original NSO Device configuration: dict
     :param leftover: NSO Device configuration minus configs replaced with MDD OC: dict
+    :param translation_notes:
     :return: MDD Openconfig Interfaces configuration: dict
     """
 
@@ -826,11 +827,12 @@ def main(before: dict, leftover: dict, translation_notes: list = []) -> dict:
 
     return openconfig_interfaces
 
+
 if __name__ == "__main__":
     sys.path.append("../../")
     sys.path.append("../../../")
 
-    if (find_spec("package_nso_to_oc") is not None):
+    if find_spec("package_nso_to_oc") is not None:
         from package_nso_to_oc.xe import common_xe
         from package_nso_to_oc import common
     else:
@@ -846,8 +848,9 @@ if __name__ == "__main__":
         "xe1", config_before_dict, config_leftover_dict, openconfig_interfaces, 
         config_name, config_remaining_name, oc_name, interfaces_notes)
 else:
-    # This is needed for now due to top level __init__.py. We need to determine if contents in __init__.py is still necessary.
-    if (find_spec("package_nso_to_oc") is not None):
+    # This is needed for now due to top level __init__.py.
+    # We need to determine if contents in __init__.py is still necessary.
+    if find_spec("package_nso_to_oc") is not None:
         from package_nso_to_oc.xe import common_xe
         from package_nso_to_oc import common
     else:

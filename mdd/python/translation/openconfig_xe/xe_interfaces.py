@@ -28,8 +28,9 @@ def xe_update_vlan_db(self) -> None:
 
     # Get VLANs from device VLAN DB
     vlans_device_db = list()
-    for v in self.root.devices.device[self.device_name].config.ios__vlan.vlan_list:
-        vlans_device_db.append(v.id)
+    if len(self.root.devices.device[self.device_name].config.ios__vlan.vlan_list) > 0:
+        for v in self.root.devices.device[self.device_name].config.ios__vlan.vlan_list:
+            vlans_device_db.append(v.id)
     self.log.info(f'{self.device_name} VLANs in device DB: {vlans_device_db}')
 
     # Get VLANs from incoming config

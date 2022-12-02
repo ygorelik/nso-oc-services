@@ -29,9 +29,15 @@ output_data/
 .idea/**/dictionaries
 .idea/**/shelf
 *.iws
+.idea/
+mdd/load-dir/
 
 ### VS Code ###
 .vscode/
 
 ### Mac ###
 *.DS_Store
+
+### Test env ###
+test-oc-services/
+oc-service-dicovery/python/test_objects.py

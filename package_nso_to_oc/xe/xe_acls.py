@@ -417,29 +417,32 @@ def process_ntp(config_before, config_after):
 
         del ntp_access_group_after["peer"]["access-list"]
 
+
 def process_line(config_before, config_after):
     vty_accesses = config_before.get("tailf-ned-cisco-ios:line", {}).get("vty")
     vty_accesses_after = config_after.get("tailf-ned-cisco-ios:line", {}).get("vty")
     openconfig_acls["openconfig-acl:acl"]["openconfig-acl-ext:lines"] = {"openconfig-acl-ext:line": []}
     acl_line = openconfig_acls["openconfig-acl:acl"]["openconfig-acl-ext:lines"]["openconfig-acl-ext:line"]
 
-    for index, access in enumerate(vty_accesses):
-        line_item = {
-            "openconfig-acl-ext:id": f"vty {access['first']} {access['last']}",
-            "openconfig-acl-ext:config": {
-                "openconfig-acl-ext:id": f"vty {access['first']} {access['last']}"
+    if vty_accesses:
+        for index, access in enumerate(vty_accesses):
+            line_item = {
+                "openconfig-acl-ext:id": f"vty {access['first']} {access['last']}",
+                "openconfig-acl-ext:config": {
+                    "openconfig-acl-ext:id": f"vty {access['first']} {access['last']}"
+                }
             }
-        }
-        if ("access-class" in access and "access-list" in access["access-class"]) or (
-            "access-class-vrf" in access and "access-class" in access["access-class-vrf"]):
-            acl_line.append(line_item)
+            if ("access-class" in access and "access-list" in access["access-class"]) or (
+                "access-class-vrf" in access and "access-class" in access["access-class-vrf"]):
+                acl_line.append(line_item)
 
-        if "access-class" in access and "access-list" in access["access-class"]:
-            process_vrf(access["access-class"]["access-list"], line_item)
-        elif "access-class-vrf" in access and "access-class" in access["access-class-vrf"]:
-            process_vrf(access["access-class-vrf"]["access-class"], line_item)
-        
-        vty_accesses_after[index] = None
+            if "access-class" in access and "access-list" in access["access-class"]:
+                process_vrf(access["access-class"]["access-list"], line_item)
+            elif "access-class-vrf" in access and "access-class" in access["access-class-vrf"]:
+                process_vrf(access["access-class-vrf"]["access-class"], line_item)
+
+            vty_accesses_after[index] = None
+
 
 def process_vrf(access_list, line_item):
     for access in access_list:

@@ -7,9 +7,9 @@ import re
 from pathlib import Path, os as path_os
 from typing import Tuple
 
-if not os.environ.get("NSO_HOST", False):
-    print("environment variable NSO_HOST must be set")
-    exit()
+# if not os.environ.get("NSO_HOST", False):
+#     print("environment variable NSO_HOST must be set")
+#     exit()
 
 # Different device OS
 XE = "xe"
@@ -20,6 +20,7 @@ XR = "xr"
 project_path = str(Path(__file__).resolve().parents[1])
 output_data_dir = f"{project_path}{path_os.sep}output_data{path_os.sep}"
 Path(output_data_dir).mkdir(parents=True, exist_ok=True)
+
 
 def nso_get_device_config(host: str, username: str, password: str, device: str) -> dict:
     """
@@ -88,8 +89,9 @@ def test_nso_program_oc(host: str, username: str, password: str, device: str, oc
         else:
             raise Exception(f"Error in input payload reported by NSO")
 
-def print_and_test_configs(device_name, config_before_dict, config_leftover_dict, oc, config_name, 
-    config_remaining_name, oc_name, translation_notes = []):
+
+def print_and_test_configs(device_name, config_before_dict, config_leftover_dict, oc, config_name,
+                           config_remaining_name, oc_name, translation_notes=[]):
     (nso_host, nso_username, nso_password) = get_nso_creds()
     nso_device = os.environ.get("NSO_DEVICE", device_name)
     test = os.environ.get("TEST", "False")
@@ -112,12 +114,14 @@ def print_and_test_configs(device_name, config_before_dict, config_leftover_dict
     if test == "True":
         test_nso_program_oc(nso_host, nso_username, nso_password, nso_device, oc)
 
+
 def get_nso_creds():
     nso_host = os.environ.get("NSO_HOST")
     nso_username = os.environ.get("NSO_USERNAME", "ubuntu")
     nso_password = os.environ.get("NSO_PASSWORD", "admin")
 
-    return (nso_host, nso_username, nso_password)
+    return nso_host, nso_username, nso_password
+
 
 def get_interface_type_number_and_subinterface(interface: str) -> Tuple[str, str]:
     """
