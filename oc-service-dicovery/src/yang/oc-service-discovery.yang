@@ -58,6 +58,12 @@ module oc-service-discovery {
           }
           default dry-run;
         }
+
+        leaf show-leftover {
+            tailf:info
+               "Show NSO device configuration, which was not included into discovered service";
+            type empty;
+        }
       }
       output {
         leaf result {

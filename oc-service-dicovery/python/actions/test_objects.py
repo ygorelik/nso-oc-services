@@ -1,7 +1,3 @@
-import os
-import urllib3
-import json
-
 device_config = """
 <config xmlns="http://tail-f.com/ns/config/1.0">
   <devices xmlns="http://tail-f.com/ns/ncs">
@@ -380,53 +376,13 @@ reconcile_param = '''{"input":{"reconcile":{"keep-non-service-config":null}}}'''
 reconcile_discard_param = '''{"input":{"reconcile":{"discard-non-service-config":null}}}'''
 
 
-def nso_post_service_config(host: str, username: str, password: str, device: str,
-                            json_load: json, dry_run=True, reconcile_discard=False) -> json:
-    """
-    Loads/dry-run openconfig service to NSO
-
-    :param host: IP or hostname: str
-    :param username: str
-    :param password: str
-    :param device: str
-    :param json_load: json object to be posted
-    :param dry_run: boolean: True for dry-run (default), False - commit service request
-    :param reconcile_discard: boolean: True for discard-non-service-config, False - keep-non-service-config (default)
-    :return: NSO response to the POST request
-    """
-    http = urllib3.PoolManager()
-    url = f"http://{host}:8080/restconf/data"  # /tailf-ncs:devices/device={device}"
-    headers = urllib3.make_headers(basic_auth=f"{username}:{password}")
-    headers.update({"Content-Type": "application/yang-data+json",
-                    "Accept": "application/yang-data+json"})
-    data = json.dumps(json_load)
-    if dry_run:
-        data += f",{dry_run_param}"
-    elif reconcile_discard:
-        data += f",{reconcile_discard_param}"
-    else:
-        data += f",{reconcile_param}"
-
-    post_result = http.request("PUT", url, headers=headers, body=data.encode('utf-8'))
-
-    return json.loads(post_result.data.decode())
-
-
 if __name__ == '__main__':
     import ncs
     import _ncs
+
+    import json
     from utilities import json_to_str
 
-    # nso_host = os.environ.get("NSO_HOST", 'localhost')
-    # nso_username = os.environ.get("NSO_USERNAME", "admin")
-    # nso_password = os.environ.get("NSO_PASSWORD", "admin")
-    # nso_device = os.environ.get("NSO_DEVICE", "xe")
-    # device_os = os.environ.get("DEVICE_OS", common.XE)
-    # test = os.environ.get("TEST", "False")
-
-    # result = nso_post_service_config(nso_host, nso_username, nso_password, nso_device,
-    #                                  json.loads(oc_interfaces_json))
-    # print(json.dumps(result, indent=2))
     device_name = 'xe'
     oc_interfaces_json = json.loads(oc_interfaces)
     service_config = {"tailf-ncs:devices": {"device": [{"name": device_name}]}}

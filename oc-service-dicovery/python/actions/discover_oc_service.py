@@ -29,8 +29,17 @@ import _ncs
 from ncs.dp import Action
 
 from pathlib import Path
+try:
+    from .utilities import get_device_config, get_device_ned_id, json_to_str
+except ImportError:
+    from utilities import get_device_config, get_device_ned_id, json_to_str
 
-from .utilities import get_device_config, get_device_ned_id, json_to_str
+python_dir = Path(__file__).parent.parent.absolute()
+package_nso_to_oc_dir = os.path.join(python_dir, 'package_nso_to_oc')
+if not (os.path.exists(package_nso_to_oc_dir) and os.path.isdir(package_nso_to_oc_dir)):
+    print("ERROR: The nso-oc-service package_nso_to_oc is not installed properly")
+    exit(1)
+sys.path.append(str(python_dir))
 
 
 class DiscoverOcService(Action):
@@ -65,16 +74,12 @@ class DiscoverOcService(Action):
 
         self.log.info(f"Requested discovery for openconfig service: {_input.service}, on device: {device_name}")
 
-        python_dir = Path(__file__).parent.parent.absolute()
-        package_nso_to_oc_dir = os.path.join(python_dir, 'package_nso_to_oc')
-        if not (os.path.exists(package_nso_to_oc_dir) and os.path.isdir(package_nso_to_oc_dir)):
-            print("ERROR: The nso-oc-service package_nso_to_oc is not installed properly")
-            exit(1)
-        sys.path.append(package_nso_to_oc_dir)
+        oc_config, leftover = get_oc_service(device.name, ned_id, str(_input.service), self.log, output)
 
-        oc_config = get_oc_service(device.name, ned_id, str(_input.service), self.log, output)
-
-        output.result = apply_service(device.name, oc_config, _input.nso_action)
+        if oc_config:
+            output.result = apply_service(device.name, oc_config, _input.nso_action)
+            if _input.show_leftover.exists():
+                output.result += f"\nDevice config not in the OC service:\n{json_to_str(leftover)}"
 
 
 def apply_service(device_name: str, oc_service_config: dict, nso_action: str) -> str:
@@ -108,12 +113,22 @@ def apply_service(device_name: str, oc_service_config: dict, nso_action: str) ->
                 return res
 
 
+def build_config_leftover(device_name: str, leftover: dict, keys_include: list) -> dict:
+    dev_config = {"devices": {"device": [{"name": device_name, "config": {}}]}}
+    for key in keys_include:
+        if key in leftover:
+            dev_config["devices"]["device"][0]["config"][key] = leftover[key]
+    return dev_config
+
+
 def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, output_=None) -> dict:
+    package_nso_to_oc = importlib.import_module('package_nso_to_oc')
     nso_device_config = get_device_config(device_name)
     device_config = nso_device_config["tailf-ncs:devices"]["device"][0]["config"]
     translation_notes = []
     config_leftover = copy.deepcopy(device_config)
     oc = {"mdd:openconfig": {}}
+    leftover = {}
 
     if 'cisco-ios-cli' == ned_id:
         from package_nso_to_oc.xe import xe_network_instances, xe_vlans, xe_interfaces, xe_system, xe_stp, xe_acls
@@ -123,7 +138,9 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
         if 'interfaces' == input_service:
             openconfig_interfaces = xe_interfaces.main(device_config, config_leftover, translation_notes)
             oc['mdd:openconfig'].update(openconfig_interfaces)
+            leftover = build_config_leftover(device_name, config_leftover, ["tailf-ned-cisco-ios:interface"])
         elif 'network-instance' == input_service:
+            openconfig_interfaces = xe_interfaces.main(device_config, config_leftover, translation_notes)
             openconfig_network_instances =\
                 xe_network_instances.main(device_config, config_leftover, translation_notes)
             openconfig_network_instance_default_vlans =\
@@ -135,20 +152,28 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
                 openconfig_network_instance_default_vlans["openconfig-network-instance:network-instances"][
                     "openconfig-network-instance:network-instance"][0]["openconfig-network-instance:vlans"])
             oc['mdd:openconfig'].update(openconfig_network_instances)
+            components = ["tailf-ned-cisco-ios:interface"]
+            leftover = build_config_leftover(device_name, config_leftover, components)
         elif 'acl' == input_service:
             openconfig_acls = xe_acls.main(device_config, config_leftover, translation_notes)
             oc['mdd:openconfig'].update(openconfig_acls)
+            components = ["openconfig-acl:acl", "openconfig-acl:ip",
+                          "tailf-ned-cisco-ios:ntp", "tailf-ned-cisco-ios:line"]
+            leftover = build_config_leftover(device_name, config_leftover, components)
         elif 'system' == input_service:
             openconfig_system = xe_system.main(
                 device_config, config_leftover, interface_ip_name_dict, translation_notes)
             oc['mdd:openconfig'].update(openconfig_system)
+            components = ["openconfig-system:system"]
+            leftover = build_config_leftover(device_name, config_leftover, components)
         elif 'stp' == input_service:
             openconfig_stp = xe_stp.main(device_config, config_leftover, translation_notes)
             oc['mdd:openconfig'].update(openconfig_stp)
+            leftover = config_leftover
         else:
             _log_and_result(f"ERROR: Openconfig service {input_service} is not supported on {ned_id} NED",
                             output_, logger.error)
-            return {}
+            return {}, leftover
 
     elif 'cisco-iosxr-cli' == ned_id:
         from package_nso_to_oc.xr import xr_system, xr_interfaces
@@ -162,8 +187,8 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
         else:
             _log_and_result(f"ERROR: Openconfig service {input_service} is not supported on {ned_id} NED",
                             output_, logger.error)
-            return {}
-    return oc
+            return {}, leftover
+    return oc, leftover
 
 
 def _log_and_result(msg, output, log_f):
@@ -209,7 +234,12 @@ if __name__ == '__main__':
 
     dev_name = 'xe'
     ned = 'cisco-ios-cli'
-    oc_service = 'interfaces'
-    oc_cfg = get_oc_service(dev_name, ned, oc_service, mylog)
+    oc_service = 'network-instance'
+    oc_cfg, left = get_oc_service(dev_name, ned, oc_service, mylog)
+    print(json_to_str(oc_cfg))
+    print(json_to_str(left))
     result = apply_service(dev_name, oc_cfg, "dry-run")
     print(result)
+    if left:
+        print("\nDevice config not in the OC service:")
+        print(json_to_str(left))

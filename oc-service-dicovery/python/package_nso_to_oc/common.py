@@ -4,22 +4,8 @@ import os
 import json
 import urllib3
 import re
-from pathlib import Path, os as path_os
+from pathlib import Path
 from typing import Tuple
-
-if not os.environ.get("NSO_HOST", False):
-    print("environment variable NSO_HOST must be set")
-    exit()
-
-# Different device OS
-XE = "xe"
-XR = "xr"
-
-# Determine the project root dir, where we will create our output_data dir (if it doesn't exist).
-# output_data_dir is meant to contain data/config files that we don't want in version control.
-project_path = str(Path(__file__).resolve().parents[1])
-output_data_dir = f"{project_path}{path_os.sep}output_data{path_os.sep}"
-Path(output_data_dir).mkdir(parents=True, exist_ok=True)
 
 
 def nso_get_device_config(host: str, username: str, password: str, device: str) -> dict:
@@ -96,17 +82,25 @@ def print_and_test_configs(device_name, config_before_dict, config_leftover_dict
     nso_device = os.environ.get("NSO_DEVICE", device_name)
     test = os.environ.get("TEST", "False")
 
-    print(json.dumps(oc, indent=4))
-    with open(f"{output_data_dir}{nso_device}_{config_name}.json", "w") as b:
+    print(json.dumps(oc, indent=2))
+
+    # Determine the project root dir, where we will create our output_data dir (if it doesn't exist).
+    # output_data_dir is meant to contain data/config files that we don't want in version control.
+    project_path = str(Path(__file__).resolve().parents[1])
+    output_data_dir = os.path.join(project_path, "output_data")
+    Path(output_data_dir).mkdir(parents=True, exist_ok=True)
+
+    device_path = os.path.join(output_data_dir, nso_device)
+    with open(f"{device_path}_{config_name}.json", "w") as b:
         b.write(json.dumps(config_before_dict, indent=4))
-    with open(f"{output_data_dir}{nso_device}_{config_remaining_name}.json", "w") as a:
+    with open(f"{device_path}_{config_remaining_name}.json", "w") as a:
         a.write(json.dumps(config_leftover_dict, indent=4))
-    with open(f"{output_data_dir}{nso_device}_{oc_name}.json", "w") as o:
+    with open(f"{device_path}_{oc_name}.json", "w") as o:
         o.write(json.dumps(oc, indent=4))
 
     if len(translation_notes) > 0:
         # Only print to file, if actual notes exist.
-        with open(f"{output_data_dir}{nso_device}_{oc_name}_notes.txt", "w") as o:
+        with open(f"{device_path}_{oc_name}_notes.txt", "w") as o:
             # We run it through a map, just in case an element in our list of notes contain non-string type.
             # Otherwise, we risk an error when joining.
             o.write("\n\n".join(map(lambda note: str(note), translation_notes)))
@@ -116,7 +110,7 @@ def print_and_test_configs(device_name, config_before_dict, config_leftover_dict
 
 
 def get_nso_creds():
-    nso_host = os.environ.get("NSO_HOST")
+    nso_host = os.environ.get("NSO_HOST", "localhost")
     nso_username = os.environ.get("NSO_USERNAME", "ubuntu")
     nso_password = os.environ.get("NSO_PASSWORD", "admin")
 
