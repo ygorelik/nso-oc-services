@@ -121,9 +121,10 @@ def build_config_leftover(device_name: str, leftover: dict, keys_include: list) 
     return dev_config
 
 
-def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, output_=None) -> dict:
+def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, output_=None) -> (dict, dict):
     package_nso_to_oc = importlib.import_module('package_nso_to_oc')
     nso_device_config = get_device_config(device_name)
+    # print(nso_device_config)
     device_config = nso_device_config["tailf-ncs:devices"]["device"][0]["config"]
     translation_notes = []
     config_leftover = copy.deepcopy(device_config)
@@ -169,7 +170,8 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
         elif 'stp' == input_service:
             openconfig_stp = xe_stp.main(device_config, config_leftover, translation_notes)
             oc['mdd:openconfig'].update(openconfig_stp)
-            leftover = config_leftover
+            components = ["openconfig-spanning-tree:stp"]
+            leftover = build_config_leftover(device_name, config_leftover, components)
         else:
             _log_and_result(f"ERROR: Openconfig service {input_service} is not supported on {ned_id} NED",
                             output_, logger.error)
@@ -181,9 +183,12 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
         if 'interfaces' == input_service:
             openconfig_interfaces = xr_interfaces.main(device_config, config_leftover, translation_notes)
             oc['mdd:openconfig'].update(openconfig_interfaces)
+            leftover = build_config_leftover(device_name, config_leftover, ["tailf-ned-cisco-iosxr:interface"])
         elif 'system' == input_service:
             openconfig_system = xr_system.main(device_config, config_leftover, translation_notes)
             oc['mdd:openconfig'].update(openconfig_system)
+            components = ["openconfig-system:system"]
+            leftover = build_config_leftover(device_name, config_leftover, components)
         else:
             _log_and_result(f"ERROR: Openconfig service {input_service} is not supported on {ned_id} NED",
                             output_, logger.error)
@@ -232,12 +237,17 @@ if __name__ == '__main__':
     logger = logging.getLogger(__name__)
     mylog = ncs.log.Log(logger)
 
-    dev_name = 'xe'
-    ned = 'cisco-ios-cli'
-    oc_service = 'network-instance'
+    dev_name = 'xr-33'
+    ned = 'cisco-iosxr-cli'
+    oc_service = 'system'
     oc_cfg, left = get_oc_service(dev_name, ned, oc_service, mylog)
-    print(json_to_str(oc_cfg))
-    print(json_to_str(left))
+    # print("Discovered openconfig services:")
+    # print(json_to_str(oc_cfg))
+    # print("\nLeftover not translated NSO configuration:")
+    # print(json_to_str(left))
+    # exit(0)
+
+    print(f"\nApplying commit dry-run to discovered {oc_service} OC service:")
     result = apply_service(dev_name, oc_cfg, "dry-run")
     print(result)
     if left:

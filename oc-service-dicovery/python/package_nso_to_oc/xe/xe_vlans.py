@@ -61,7 +61,7 @@ def xe_create_vlans(config_before: dict, config_leftover: dict) -> None:
                         "openconfig-network-instance:name": vlan.get("name", ""),
                         "openconfig-network-instance:status": status
                     }
-                    }
+                }
             openconfig_network_instance_vlans.append(temp)
         del config_leftover["tailf-ned-cisco-ios:vlan"]
 
@@ -79,6 +79,7 @@ def main(before: dict, leftover: dict, translation_notes: list = []) -> dict:
 
     :param before: Original NSO Device configuration: dict
     :param leftover: NSO Device configuration minus configs replaced with MDD OC: dict
+    :param translation_notes: list[str]
     :return: MDD Openconfig Network instances with VLANS configuration: dict
     """
 
@@ -87,11 +88,12 @@ def main(before: dict, leftover: dict, translation_notes: list = []) -> dict:
 
     return openconfig_vlans
 
+
 if __name__ == "__main__":
     sys.path.append("../../")
     sys.path.append("../../../")
 
-    if (find_spec("package_nso_to_oc") is not None):
+    if find_spec("package_nso_to_oc") is not None:
         from package_nso_to_oc.xe import common_xe
         from package_nso_to_oc import common
     else:
@@ -104,10 +106,11 @@ if __name__ == "__main__":
     config_remaining_name = "ned_configuration_remaining_vlans"
     oc_name = "openconfig_vlans"
     common.print_and_test_configs("xe1", config_before_dict, config_leftover_dict, openconfig_vlans, 
-        config_name, config_remaining_name, oc_name, vlans_notes)
+                                  config_name, config_remaining_name, oc_name, vlans_notes)
 else:
-    # This is needed for now due to top level __init__.py. We need to determine if contents in __init__.py is still necessary.
-    if (find_spec("package_nso_to_oc") is not None):
+    # This is needed for now due to top level __init__.py.
+    # We need to determine if contents in __init__.py is still necessary.
+    if find_spec("package_nso_to_oc") is not None:
         from package_nso_to_oc.xe import common_xe
         from package_nso_to_oc import common
     else:

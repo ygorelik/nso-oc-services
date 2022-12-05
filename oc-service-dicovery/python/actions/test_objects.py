@@ -371,6 +371,67 @@ oc_interfaces = '''{
 }
 '''
 
+oc_system = '''{
+  "mdd:openconfig": {
+    "openconfig-system:system": {
+      "openconfig-system:aaa": {},
+      "openconfig-system:clock": {},
+      "openconfig-system:config": {
+        "openconfig-system:hostname": "Router"
+      },
+      "openconfig-system:dns": {},
+      "openconfig-system:logging": {},
+      "openconfig-system:ntp": {
+        "openconfig-system:config": {},
+        "openconfig-system:ntp-keys": {
+          "openconfig-system:ntp-key": []
+        },
+        "openconfig-system:servers": {
+          "openconfig-system:server": []
+        }
+      },
+      "openconfig-system:ssh-server": {
+        "openconfig-system:config": {
+          "openconfig-system:protocol-version": "V2"
+        }
+      },
+      "openconfig-system-ext:services": {
+        "openconfig-system-ext:http": {
+          "openconfig-system-ext:config": {
+            "openconfig-system-ext:http-enabled": true
+          }
+        },
+        "openconfig-system-ext:config": {
+          "openconfig-system-ext:ip-domain-lookup": true,
+          "openconfig-system-ext:archive-logging": false,
+                      "openconfig-system-ext:boot-network": "DISABLED",
+          "openconfig-system-ext:ip-bootp-server": true,
+          "openconfig-system-ext:ip-dns-server": false,
+          "openconfig-system-ext:ip-identd": false,
+          "openconfig-system-ext:ip-rcmd-rcp-enable": false,
+          "openconfig-system-ext:ip-rcmd-rsh-enable": false,
+          "openconfig-system-ext:finger": false,
+          "openconfig-system-ext:service-config": false,
+          "openconfig-system-ext:service-tcp-small-servers": false,
+          "openconfig-system-ext:service-udp-small-servers": false,
+          "openconfig-system-ext:service-pad": false,
+          "openconfig-system-ext:service-password-encryption": false
+        },
+        "openconfig-system-ext:login-security-policy": {
+          "openconfig-system-ext:config": {
+            "openconfig-system-ext:on-success": true,
+            "openconfig-system-ext:on-failure": false
+          },
+          "openconfig-system-ext:block-for": {
+            "openconfig-system-ext:config": {}
+          }
+        }
+      }
+    }
+  }
+}
+'''
+
 dry_run_param = '''{"input":{"dry-run":{"outformat":"native"}}}'''
 reconcile_param = '''{"input":{"reconcile":{"keep-non-service-config":null}}}'''
 reconcile_discard_param = '''{"input":{"reconcile":{"discard-non-service-config":null}}}'''
@@ -383,10 +444,10 @@ if __name__ == '__main__':
     import json
     from utilities import json_to_str
 
-    device_name = 'xe'
-    oc_interfaces_json = json.loads(oc_interfaces)
+    device_name = 'xe-65'
+    oc_service_json = json.loads(oc_system)
     service_config = {"tailf-ncs:devices": {"device": [{"name": device_name}]}}
-    service_config["tailf-ncs:devices"]["device"][0].update(oc_interfaces_json)
+    service_config["tailf-ncs:devices"]["device"][0].update(oc_service_json)
 
     with ncs.maapi.Maapi() as m:
         with ncs.maapi.Session(m, 'admin', 'system'):

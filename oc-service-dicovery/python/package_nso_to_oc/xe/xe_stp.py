@@ -517,7 +517,7 @@ if __name__ == "__main__":
     sys.path.append("../../")
     sys.path.append("../../../")
 
-    if (find_spec("package_nso_to_oc") is not None):
+    if find_spec("package_nso_to_oc") is not None:
         from package_nso_to_oc.xe import common_xe
         from package_nso_to_oc import common
     else:

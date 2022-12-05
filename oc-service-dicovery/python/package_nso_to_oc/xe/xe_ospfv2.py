@@ -25,6 +25,7 @@ ospf_network_types = {
     "non-broadcast": "NON_BROADCAST_NETWORK"
 }
 
+
 def configure_xe_ospf(net_inst, vrf_interfaces, config_before, config_leftover):
     """
     Translates NSO XE NED to MDD OpenConfig Network Instances
@@ -33,13 +34,14 @@ def configure_xe_ospf(net_inst, vrf_interfaces, config_before, config_leftover):
     net_protocols = net_inst["openconfig-network-instance:protocols"]["openconfig-network-instance:protocol"]
     ospf_list = config_before.get("tailf-ned-cisco-ios:router", {}).get("ospf")
 
-    if ospf_list == None:
+    if ospf_list is None:
         return
 
     for ospf_index, ospf in enumerate(ospf_list):
         if ((instance_type == "L3VRF" and "vrf" in ospf)
-            or (instance_type == "DEFAULT_INSTANCE" and not "vrf" in ospf)):
+                or (instance_type == "DEFAULT_INSTANCE" and "vrf" not in ospf)):
             process_ospf(net_protocols, vrf_interfaces, config_leftover, ospf_index, ospf)
+
 
 def get_interfaces_by_area(network_statements, vrf_interfaces):
     """
@@ -65,7 +67,7 @@ def get_interfaces_by_area(network_statements, vrf_interfaces):
         for vrf_intf in vrf_interfaces:
             full_intf_name = vrf_intf["type"] + vrf_intf["name"]
 
-            if (full_intf_name in processed_interfaces):
+            if full_intf_name in processed_interfaces:
                 continue
 
             merged_vrf_intf_ip = binary_merge(vrf_intf["ip"]["address"]["primary"]["address"], stmt_mask)
@@ -74,12 +76,13 @@ def get_interfaces_by_area(network_statements, vrf_interfaces):
                 # If there's a match, then this interface is OSPF enabled
                 processed_interfaces.add(full_intf_name)
                 
-                if not area_id in interfaces_by_area:
+                if area_id not in interfaces_by_area:
                     interfaces_by_area[area_id] = []
                 
                 interfaces_by_area[area_id].append(vrf_intf)
                 
     return interfaces_by_area
+
 
 def sort_by_mask(stmt1, stmt2):
     """
@@ -113,6 +116,7 @@ def sort_by_mask(stmt1, stmt2):
 
     return 0
 
+
 def binary_merge(ip, mask):
     """
     Transform the IPs into binary string format and merge the binary strings via OR operation
@@ -128,6 +132,7 @@ def binary_merge(ip, mask):
 
     return "".join(merged_result)
 
+
 def get_binary_str(ip_str):
     octets = ip_str.split(".")
     binary_octets = []
@@ -137,8 +142,9 @@ def get_binary_str(ip_str):
 
     return "".join(binary_octets)
 
+
 def get_ospfv2_global(net_protocols, prot_index):
-    if (len(net_protocols) >= prot_index):
+    if len(net_protocols) >= prot_index:
         if not "openconfig-network-instance:ospfv2" in net_protocols[prot_index]: 
             net_protocols[prot_index]["openconfig-network-instance:ospfv2"] = {}
         if not "openconfig-network-instance:global" in net_protocols[prot_index]["openconfig-network-instance:ospfv2"]:
@@ -149,27 +155,32 @@ def get_ospfv2_global(net_protocols, prot_index):
         # Sanity check, should not occur...
         raise IndexError(f"The protocol index {prot_index} does not exist.")
 
+
 def get_ospfv2_area(net_protocols, prot_index):
-    if (len(net_protocols) >= prot_index):
-        if not "openconfig-network-instance:ospfv2" in net_protocols[prot_index]: 
+    if len(net_protocols) >= prot_index:
+        if "openconfig-network-instance:ospfv2" not in net_protocols[prot_index]:
             net_protocols[prot_index]["openconfig-network-instance:ospfv2"] = {}
-        if not "areas" in net_protocols[prot_index]["openconfig-network-instance:ospfv2"]:
-            net_protocols[prot_index]["openconfig-network-instance:ospfv2"]["openconfig-network-instance:areas"] = {"openconfig-network-instance:area": []}
+        if "areas" not in net_protocols[prot_index]["openconfig-network-instance:ospfv2"]:
+            net_protocols[prot_index]["openconfig-network-instance:ospfv2"]["openconfig-network-instance:areas"] =\
+                {"openconfig-network-instance:area": []}
         
         return net_protocols[prot_index]["openconfig-network-instance:ospfv2"]["openconfig-network-instance:areas"]["openconfig-network-instance:area"]
     else:
         # Sanity check, should not occur...
         raise IndexError(f"The protocol index {prot_index} does not exist.")
 
+
 def get_area_by_id(ospfv2_area, area_id):
     for area in ospfv2_area:
         if area["openconfig-network-instance:identifier"] == area_id:
             return area
 
-    new_area = {"openconfig-network-instance:identifier": area_id, "openconfig-network-instance:config": {"openconfig-network-instance:identifier": area_id}}
+    new_area = {"openconfig-network-instance:identifier": area_id,
+                "openconfig-network-instance:config": {"openconfig-network-instance:identifier": area_id}}
     ospfv2_area.append(new_area)
 
     return new_area
+
 
 def is_area_present_by_id(ospfv2_area, id):
     for area in ospfv2_area:
@@ -178,10 +189,12 @@ def is_area_present_by_id(ospfv2_area, id):
 
     return False
 
+
 def get_intf_by_intf_number(intf_attr, intf_number):
     for intf in intf_attr:
         if intf["name"] == intf_number:
             return intf
+
 
 def process_ospf(net_protocols, vrf_interfaces, config_leftover, ospf_index, ospf):
     ospf_leftover = config_leftover.get("tailf-ned-cisco-ios:router", {}).get("ospf")[ospf_index]
@@ -198,6 +211,7 @@ def process_ospf(net_protocols, vrf_interfaces, config_leftover, ospf_index, osp
     set_timers_lsa(ospf_leftover, net_protocols, prot_index, ospf)
     set_timers_spf(ospf_leftover, net_protocols, prot_index, ospf)
 
+
 def set_network_config(ospf_leftover, net_protocols, prot_index, ospf):
     net_protocols[prot_index]["openconfig-network-instance:identifier"] = "OSPF"
     net_protocols[prot_index]["openconfig-network-instance:name"] = f'{ospf.get("id")}'
@@ -210,6 +224,7 @@ def set_network_config(ospf_leftover, net_protocols, prot_index, ospf):
 
     if ospf_leftover.get("id"):
         del ospf_leftover["id"]
+
 
 def set_ospf2_global_config(ospf_leftover, net_protocols, prot_index, ospf):
     ospfv2_global = get_ospfv2_global(net_protocols, prot_index)
@@ -570,7 +585,8 @@ def set_traffic_eng(area_by_id, ospf, ospf_leftover):
                 ospf_leftover["mpls"]["traffic-eng"]["area"][traffic_area_index] = None
                 break
 
-    area_by_id["openconfig-network-instance:mpls"] = {"openconfig-network-instance:config": {"openconfig-network-instance:traffic-engineering-enabled": is_enabled}}
+    area_by_id["openconfig-network-instance:mpls"] =\
+        {"openconfig-network-instance:config": {"openconfig-network-instance:traffic-engineering-enabled": is_enabled}}
 
 def set_virtual_links(area_by_id, area, area_key, ospf_leftover):
     if "virtual-link" in area:

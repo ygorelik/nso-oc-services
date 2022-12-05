@@ -42,3 +42,4 @@ mdd/load-dir/
 test-oc-services/
 oc-service-dicovery/python/actions/test_objects.py
 oc-service-dicovery/load-dir
+temp/
