@@ -72,5 +72,12 @@ def get_device_config(device_name):
                 return json.loads(dev_config)['data']
 
 
+def read_device_config(device_name):
+    file_path = f"/Users/ygorelik/nso-oc-services/temp/{device_name}.json"
+    with open(file_path, 'r') as f:
+        dev_config = f.read()
+        return json.loads(dev_config)['data']
+
+
 def json_to_str(j: json) -> str:
     return json.dumps(j, indent=2)

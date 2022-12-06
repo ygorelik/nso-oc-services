@@ -2,7 +2,7 @@
   <name>mdd</name>
   <package-version>1.0</package-version>
   <description>Translates OpenConfig models to NSO devices and augments OpenConfig models with custom configurations.</description>
-  <ncs-min-version>5.5</ncs-min-version>
+  <ncs-min-version>5.3</ncs-min-version>
   <component>
     <name>main</name>
     <application>

@@ -65,7 +65,10 @@ def return_nested_dict(root_dict: dict, keys_list: list) -> dict:
     """
     return_dict = root_dict
     for key in keys_list:
-        return_dict = return_dict[key]
+        try:
+            return_dict = return_dict[key]
+        except IndexError:
+            return_dict = return_dict[len(return_dict)-1]
     return return_dict
 
 
@@ -92,7 +95,7 @@ def create_interface_dict(config_before: dict) -> dict:
 
     def index_subinterfaces(interface_type):
         interface_dict[interface_type] = {}
-        oc_sub_interface_place_counter = 0  # OC interface sub-if place counter
+        oc_sub_interface_place_counter_ = 0  # OC interface sub-if place counter
 
         for nso_index, value in enumerate(
                 config_before["tailf-ned-cisco-ios-xr:interface"][interface_type][
@@ -106,14 +109,14 @@ def create_interface_dict(config_before: dict) -> dict:
                 "oc_interface_index"]
 
             if oc_sub_interface_number != 0:
-                oc_sub_interface_place_counter += 1
+                oc_sub_interface_place_counter_ += 1
             temp = {value["id"]:
                         {"oc_interface_index": oc_interface_index,
                          "nso_interface_index": nso_index,
                          "physical_interface_number": physical_interface_number,
                          "oc_sub_interface_number": oc_sub_interface_number,
                          "nso_interface_type": interface_type,
-                         "oc_sub_interface_place_counter": oc_sub_interface_place_counter}
+                         "oc_sub_interface_place_counter": oc_sub_interface_place_counter_}
                     }
             interface_dict[interface_type].update(temp)
         oc_interface_index += 1
@@ -421,7 +424,7 @@ def configure_port_channel(config_before: dict, config_leftover: dict, interface
             path_oc_subif = ["openconfig-interfaces:interfaces", "openconfig-interfaces:interface",
                              interface_directory["oc_interface_index"], "openconfig-interfaces:subinterfaces",
                              "openconfig-interfaces:subinterface",
-                             interface_directory["oc_sub_interface_place_counter"]]
+                             interface_directory["oc_sub_interface_place_counter"]-1]
 
             openconfig_interface_subif = return_nested_dict(openconfig_interfaces, path_oc_subif)
 
