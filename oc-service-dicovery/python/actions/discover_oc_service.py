@@ -125,8 +125,8 @@ def build_config_leftover(device_name: str, leftover: dict, keys_include: list) 
 
 def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, output_=None) -> (dict, dict):
     package_nso_to_oc = importlib.import_module('package_nso_to_oc')
-    # nso_device_config = get_device_config(device_name)
-    nso_device_config = read_device_config(device_name)
+    nso_device_config = get_device_config(device_name)
+    # nso_device_config = read_device_config(device_name)
     # print(nso_device_config)
     device_config = nso_device_config["tailf-ncs:devices"]["device"][0]["config"]
     translation_notes = []
