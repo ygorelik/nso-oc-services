@@ -82,6 +82,7 @@ class BaseAcl:
         self._xe_acl_set = xe_acl_set
         self._xe_acl_set_after = xe_acl_set_after
         self._xe_acl_name = self._xe_acl_set.get("name")
+        self.acl_success = True
 
     def process_acl(self):
         acl_set = {
@@ -96,24 +97,25 @@ class BaseAcl:
                 "openconfig-acl:acl-entry": []
             }
         }
-        self._oc_acl_set.append(acl_set)
-        acl_success = True
-        
+        self.acl_success = True
+
         for rule_index, access_rule in enumerate(self._xe_acl_set.get(self._rule_list_key, [])):
             rule_success = self.__set_rule_parts(access_rule, acl_set)
-            
+
             if rule_success:
                 self._xe_acl_set_after[self._rule_list_key][rule_index] = None
             else:
-                acl_success = False
+                self.acl_success = False
 
         # We only delete if all entries processed successfully.
-        if acl_success:
+        # We only add the ACL to OpenConfig if all entries processed successfully.
+        if self.acl_success:
+            self._oc_acl_set.append(acl_set)
             del self._xe_acl_set_after["name"]
 
     def __set_rule_parts(self, access_rule, acl_set):
         rule_parts = access_rule.get("rule", "").split()
-        
+
         if len(rule_parts) < 1:
             return
 
@@ -146,7 +148,7 @@ class BaseAcl:
             acl_set["openconfig-acl:acl-entries"]["openconfig-acl:acl-entry"].append(entry)
 
         return success
-    
+
     def __add_acl_entry_note(self, original_entry, note):
         acls_notes.append(f"""
             ACL name: {self._xe_acl_name}
@@ -159,10 +161,12 @@ class BaseAcl:
             return 2
         if rule_parts[2] != 'ip':
             if not rule_parts[2] in protocols_oc_to_xe:
-                self.__add_acl_entry_note(" ".join(rule_parts), f"protocol {rule_parts[2]} does not exist in expected list of protocols")
+                self.__add_acl_entry_note(" ".join(rule_parts),
+                                          f"protocol {rule_parts[2]} does not exist in expected list of protocols")
+                self.acl_success = False
                 raise ValueError
             self.__get_ipv4_config(entry)["openconfig-acl:protocol"] = protocols_oc_to_xe[rule_parts[2]]
-        
+
         return 3
 
     def __get_ipv4_config(self, entry):
@@ -170,7 +174,7 @@ class BaseAcl:
             entry[self._ipv4_key] = {}
         if self._config_key not in entry[self._ipv4_key]:
             entry[self._ipv4_key][self._config_key] = {}
-        
+
         return entry[self._ipv4_key][self._config_key]
 
     def __get_transport_config(self, entry):
@@ -178,7 +182,7 @@ class BaseAcl:
             entry["openconfig-acl:transport"] = {}
         if "openconfig-acl:config" not in entry["openconfig-acl:transport"]:
             entry["openconfig-acl:transport"]["openconfig-acl:config"] = {}
-        
+
         return entry["openconfig-acl:transport"]["openconfig-acl:config"]
 
     def __set_ip_and_port(self, rule_parts, current_index, entry, is_source):
@@ -200,14 +204,15 @@ class BaseAcl:
                 self.__get_ipv4_config(entry)[self._src_addr_key] = "0.0.0.0/0"
             else:
                 self.__get_ipv4_config(entry)["openconfig-acl:destination-address"] = "0.0.0.0/0"
-            
+
             return current_index + 1
         elif ip == "host":
             if is_source:
                 self.__get_ipv4_config(entry)[self._src_addr_key] = f"{rule_parts[current_index + 1]}/32"
             else:
-                self.__get_ipv4_config(entry)["openconfig-acl:destination-address"] = f"{rule_parts[current_index + 1]}/32"
-            
+                self.__get_ipv4_config(entry)[
+                    "openconfig-acl:destination-address"] = f"{rule_parts[current_index + 1]}/32"
+
             return current_index + 2
 
         hostmask = rule_parts[current_index + 1]
@@ -217,7 +222,7 @@ class BaseAcl:
             self.__get_ipv4_config(entry)[self._src_addr_key] = f"{ip}/{temp_ip.prefixlen}"
         else:
             self.__get_ipv4_config(entry)["openconfig-acl:destination-address"] = f"{ip}/{temp_ip.prefixlen}"
-        
+
         return current_index + 2
 
     def __set_port(self, rule_parts, current_index, entry, is_source):
@@ -228,15 +233,17 @@ class BaseAcl:
             else:
                 self.__get_transport_config(entry)["openconfig-acl:destination-port"] = "ANY"
                 current_index = self.__set_tcp_flags(rule_parts, current_index, entry)
-            
+
             return current_index
-        
+
         current_port = rule_parts[current_index + 1]
 
         try:
             current_port = current_port if current_port.isdigit() else socket.getservbyname(current_port)
         except Exception as err:
-            self.__add_acl_entry_note(" ".join(rule_parts), f"Unable to convert service {current_port} to a port number")
+            self.__add_acl_entry_note(" ".join(rule_parts),
+                                      f"Unable to convert service {current_port} to a port number")
+            self.acl_success = False
             raise Exception
 
         if rule_parts[current_index] == "range":
@@ -247,7 +254,7 @@ class BaseAcl:
             else:
                 self.__get_transport_config(entry)["openconfig-acl:destination-port"] = f"{current_port}..{end_port}"
                 current_index = self.__set_tcp_flags(rule_parts, current_index + 3, entry)
-            
+
             return current_index
         elif rule_parts[current_index] == "lt":
             if is_source:
@@ -258,16 +265,19 @@ class BaseAcl:
             if is_source:
                 self.__get_transport_config(entry)["openconfig-acl:source-port"] = f"{int(current_port) + 1}..65535"
             else:
-                self.__get_transport_config(entry)["openconfig-acl:destination-port"] = f"{int(current_port) + 1}..65535"
+                self.__get_transport_config(entry)[
+                    "openconfig-acl:destination-port"] = f"{int(current_port) + 1}..65535"
         elif rule_parts[current_index] == "eq":
             if is_source:
                 self.__get_transport_config(entry)["openconfig-acl:source-port"] = int(current_port)
             else:
                 self.__get_transport_config(entry)["openconfig-acl:destination-port"] = int(current_port)
         elif rule_parts[current_index] == "neq":
-            self.__add_acl_entry_note(" ".join(rule_parts), "XE ACL use of 'neq' port operator does not have an OC equivalent.")
+            self.__add_acl_entry_note(" ".join(rule_parts),
+                                      "XE ACL use of 'neq' port operator does not have an OC equivalent.")
+            self.acl_success = False
             raise ValueError
-        
+
         if not is_source:
             current_index = self.__set_tcp_flags(rule_parts, current_index + 2, entry)
 
@@ -320,18 +330,19 @@ def get_interfaces_by_acl(config_before, config_after):
             interface_list_after = interface_list_after[interface_type]
 
         for index, interface in enumerate(interface_list):
-            if not "ip" in interface or not "access-group" in interface["ip"] or len(interface["ip"]["access-group"]) < 1:
+            if not "ip" in interface or not "access-group" in interface["ip"] or len(
+                    interface["ip"]["access-group"]) < 1:
                 continue
 
             intf_id = f"{interface_type}{interface['name']}"
-            intf_numb_parts = re.split("[\./]", interface["name"])
+            intf_numb_parts = re.split("[.]", interface["name"])
             intf_num = intf_numb_parts[0]
             subintf_num = int(intf_numb_parts[1]) if len(intf_numb_parts) > 1 else 0
 
             for access_group in interface["ip"]["access-group"]:
                 if interface_list_after[index].get("ip") and interface_list_after[index]["ip"].get("access-group"):
                     del interface_list_after[index]["ip"]["access-group"]
-                
+
                 intf = {
                     "id": intf_id,
                     "interface": f"{interface_type}{intf_num}",
@@ -343,13 +354,13 @@ def get_interfaces_by_acl(config_before, config_after):
                     interfaces_by_acl[access_group["access-list"]] = []
 
                 interfaces_by_acl[access_group["access-list"]].append(intf)
-                
+
     return interfaces_by_acl
 
 
 def process_interfaces(acl_type, acl_name, interfaces_by_acl, acl_interfaces):
     interfaces = interfaces_by_acl.get(acl_name, [])
-    
+
     for interface in interfaces:
         if interface["id"] in acl_interfaces:
             acl_interface = acl_interfaces[interface["id"]]
@@ -365,7 +376,7 @@ def process_interfaces(acl_type, acl_name, interfaces_by_acl, acl_interfaces):
                 }
             }
             acl_interfaces[interface["id"]] = acl_interface
-        
+
         intf_acl_set = get_intf_acl_set(acl_interface, interface["direction"])
         intf_acl_set.append({
             "openconfig-acl:set-name": acl_name,
@@ -384,7 +395,7 @@ def get_intf_acl_set(acl_interface, direction):
             acl_interface[f"{ingress_set}s"] = {ingress_set: []}
         if not ingress_set in acl_interface[f"{ingress_set}s"]:
             acl_interface[f"{ingress_set}s"][ingress_set] = []
-        
+
         return acl_interface[f"{ingress_set}s"][ingress_set]
     else:
         egress_set = "openconfig-acl:egress-acl-set"
@@ -392,7 +403,7 @@ def get_intf_acl_set(acl_interface, direction):
             acl_interface[f"{egress_set}s"] = {egress_set: []}
         if not egress_set in acl_interface[f"{egress_set}s"]:
             acl_interface[f"{egress_set}s"][egress_set] = []
-        
+
         return acl_interface[f"{egress_set}s"][egress_set]
 
 
@@ -432,24 +443,23 @@ def process_line(config_before, config_after):
     openconfig_acls["openconfig-acl:acl"]["openconfig-acl-ext:lines"] = {"openconfig-acl-ext:line": []}
     acl_line = openconfig_acls["openconfig-acl:acl"]["openconfig-acl-ext:lines"]["openconfig-acl-ext:line"]
 
-    if vty_accesses:
-        for index, access in enumerate(vty_accesses):
-            line_item = {
-                "openconfig-acl-ext:id": f"vty {access['first']} {access['last']}",
-                "openconfig-acl-ext:config": {
-                    "openconfig-acl-ext:id": f"vty {access['first']} {access['last']}"
-                }
+    for index, access in enumerate(vty_accesses):
+        line_item = {
+            "openconfig-acl-ext:id": f"vty {access['first']} {access['last']}",
+            "openconfig-acl-ext:config": {
+                "openconfig-acl-ext:id": f"vty {access['first']} {access['last']}"
             }
-            if ("access-class" in access and "access-list" in access["access-class"]) or (
+        }
+        if ("access-class" in access and "access-list" in access["access-class"]) or (
                 "access-class-vrf" in access and "access-class" in access["access-class-vrf"]):
-                acl_line.append(line_item)
+            acl_line.append(line_item)
 
-            if "access-class" in access and "access-list" in access["access-class"]:
-                process_vrf(access["access-class"]["access-list"], line_item)
-            elif "access-class-vrf" in access and "access-class" in access["access-class-vrf"]:
-                process_vrf(access["access-class-vrf"]["access-class"], line_item)
-
-            vty_accesses_after[index] = None
+        if "access-class" in access and "access-list" in access["access-class"]:
+            process_vrf(access["access-class"]["access-list"], line_item)
+            vty_accesses_after[index]["access-class"]["access-list"] = None
+        elif "access-class-vrf" in access and "access-class" in access["access-class-vrf"]:
+            process_vrf(access["access-class-vrf"]["access-class"], line_item)
+            vty_accesses_after[index]["access-class-vrf"]["access-class"] = None
 
 
 def process_vrf(access_list, line_item):
@@ -484,6 +494,7 @@ def main(before: dict, leftover: dict, translation_notes: list = []) -> dict:
 
     :param before: Original NSO Device configuration: dict
     :param leftover: NSO Device configuration minus configs replaced with MDD OC: dict
+    :param translation_notes: notes from previous NSO to OC translations if any
     :return: MDD Openconfig Network Instances configuration: dict
     """
 

@@ -20,4 +20,4 @@ def init_xe_configs(device_name = "xe1"):
     config_leftover_dict = copy.deepcopy(config_before_dict)
     interface_ip_dict = common.xe_system_get_interface_ip_address(config_before_dict)
 
-    return (config_before_dict, config_leftover_dict, interface_ip_dict)
+    return config_before_dict, config_leftover_dict, interface_ip_dict
