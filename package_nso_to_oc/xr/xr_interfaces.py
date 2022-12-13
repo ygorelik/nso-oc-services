@@ -92,7 +92,7 @@ def create_interface_dict(config_before: dict) -> dict:
 
     def index_subinterfaces(interface_type, nso_old_physical_interface_number):
         interface_dict[interface_type] = {}
-        oc_sub_interface_place_counter_ = 0  # OC interface sub-if place counter
+        oc_sub_interface_place_counter = 0  # OC interface sub-if place counter
 
         for nso_index, value in enumerate(
                 config_before["tailf-ned-cisco-ios-xr:interface"][interface_type][
@@ -106,16 +106,16 @@ def create_interface_dict(config_before: dict) -> dict:
                 "oc_interface_index"]
 
             if oc_sub_interface_number != 0 and (nso_old_physical_interface_number != physical_interface_number):
-                oc_sub_interface_place_counter_ = 1
+                oc_sub_interface_place_counter = 1
             elif oc_sub_interface_number != 0 and (nso_old_physical_interface_number == physical_interface_number):
-                oc_sub_interface_place_counter_ += 1
+                oc_sub_interface_place_counter += 1
             temp = {value["id"]:
                         {"oc_interface_index": oc_interface_index,
                          "nso_interface_index": nso_index,
                          "physical_interface_number": physical_interface_number,
                          "oc_sub_interface_number": oc_sub_interface_number,
                          "nso_interface_type": interface_type,
-                         "oc_sub_interface_place_counter": oc_sub_interface_place_counter_}
+                         "oc_sub_interface_place_counter": oc_sub_interface_place_counter}
                     }
             interface_dict[interface_type].update(temp)
             nso_old_physical_interface_number = physical_interface_number

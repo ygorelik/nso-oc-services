@@ -128,7 +128,7 @@ def xe_system_program_service(self) -> None:
         if device_cdb.ios__archive.log.config.logging.enable.exists():
             device_cdb.ios__archive.delete()
     # boot network
-    if self.service.oc_sys__system.services.config.boot_network == "DISABLED":
+    if self.service.oc_sys__system.services.boot_network.config.bootnetwork_enabled == "DISABLED":
         if len(device_cdb.ios__boot.network.list) != 0 or \
            len(device_cdb.ios__boot.network.list_flash.flash) != 0 or \
            device_cdb.ios__boot.network.remote_url:
@@ -346,6 +346,17 @@ def xe_system_program_service(self) -> None:
         interface_type, interface_number = get_interface_type_and_number(
             self.service.oc_sys__system.ssh_server.config.ssh_source_interface)
         device_cdb.ios__ip.ssh.source_interface[interface_type] = interface_number
+    if self.service.oc_sys__system.ssh_server.algorithm.config.encryption:
+        device_cdb.ios__ip.ssh.server.algorithm.encryption.delete()
+        for enc in self.service.oc_sys__system.ssh_server.algorithm.config.encryption:
+            if enc == 'triple-des-cbc':
+                device_cdb.ios__ip.ssh.server.algorithm.encryption.create(enc.replace('triple-des-cbc', '3des-cbc'))
+            else:
+                device_cdb.ios__ip.ssh.server.algorithm.encryption.create(enc)
+    if self.service.oc_sys__system.ssh_server.algorithm.config.mac:
+        device_cdb.ios__ip.ssh.server.algorithm.mac.delete()
+        for mac in self.service.oc_sys__system.ssh_server.algorithm.config.mac:
+            device_cdb.ios__ip.ssh.server.algorithm.mac.create(mac)
     # NTP
     if self.service.oc_sys__system.ntp.config.enabled:
         if self.service.oc_sys__system.ntp.config.ntp_source_address:
