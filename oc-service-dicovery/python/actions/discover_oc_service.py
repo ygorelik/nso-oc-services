@@ -158,7 +158,7 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
             oc['mdd:openconfig'].update(openconfig_network_instances)
             components = ["tailf-ned-cisco-ios:interface"]
             leftover = build_config_leftover(device_name, config_leftover, components)
-        elif 'acls' == input_service:
+        elif 'acl' == input_service:
             openconfig_acls = xe_acls.main(device_config, config_leftover, translation_notes)
             oc['mdd:openconfig'].update(openconfig_acls)
             components = ["openconfig-acl:acl", "openconfig-acl:ip",
@@ -192,7 +192,7 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
             oc['mdd:openconfig'].update(openconfig_system)
             components = ["openconfig-system:system"]
             leftover = build_config_leftover(device_name, config_leftover, components)
-        elif 'acls' == input_service:
+        elif 'acl' == input_service:
             openconfig_system = xr_acls.main(device_config, config_leftover, translation_notes)
             oc['mdd:openconfig'].update(openconfig_system)
             components = ["openconfig-acl:acl"]

@@ -30,7 +30,7 @@ module oc-service-discovery {
             "Service to be discovered; corresponding service package must be installed in NSO";
           tailf:cli-drop-node-name;
           type enumeration {
-            enum acls;
+            enum acl;
             enum interfaces;
             enum network-instance;
             enum system;
