@@ -7,6 +7,10 @@ import re
 from pathlib import Path
 from typing import Tuple
 
+# Different device OS
+XE = "xe"
+XR = "xr"
+
 
 def nso_get_device_config(host: str, username: str, password: str, device: str) -> dict:
     """
@@ -111,7 +115,7 @@ def print_and_test_configs(device_name, config_before_dict, config_leftover_dict
 
 def get_nso_creds():
     nso_host = os.environ.get("NSO_HOST", "localhost")
-    nso_username = os.environ.get("NSO_USERNAME", "ubuntu")
+    nso_username = os.environ.get("NSO_USERNAME", "admin")
     nso_password = os.environ.get("NSO_PASSWORD", "admin")
 
     return nso_host, nso_username, nso_password

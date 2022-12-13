@@ -91,7 +91,7 @@ class BaseAcl:
             "openconfig-acl:config": {
                 "openconfig-acl:name": self._xe_acl_set.get("name"),
                 "openconfig-acl:type": self._acl_type,
-                "openconfig-acl:description": self._xe_acl_set.get("name"), # XE doesn't seem to have a description.
+                "openconfig-acl:description": self._xe_acl_set.get("name"),  # XE doesn't seem to have a description.
             },
             "openconfig-acl:acl-entries": {
                 "openconfig-acl:acl-entry": []
@@ -349,7 +349,7 @@ def get_interfaces_by_acl(config_before, config_after):
                     "subinterface": subintf_num,
                     "direction": access_group["direction"]
                 }
-                
+
                 if not access_group["access-list"] in interfaces_by_acl:
                     interfaces_by_acl[access_group["access-list"]] = []
 
@@ -439,6 +439,8 @@ def process_ntp(config_before, config_after):
 
 def process_line(config_before, config_after):
     vty_accesses = config_before.get("tailf-ned-cisco-ios:line", {}).get("vty")
+    if vty_accesses is None:
+        return
     vty_accesses_after = config_after.get("tailf-ned-cisco-ios:line", {}).get("vty")
     openconfig_acls["openconfig-acl:acl"]["openconfig-acl-ext:lines"] = {"openconfig-acl-ext:line": []}
     acl_line = openconfig_acls["openconfig-acl:acl"]["openconfig-acl-ext:lines"]["openconfig-acl-ext:line"]
@@ -497,7 +499,6 @@ def main(before: dict, leftover: dict, translation_notes: list = []) -> dict:
     :param translation_notes: notes from previous NSO to OC translations if any
     :return: MDD Openconfig Network Instances configuration: dict
     """
-
     xe_acls(before, leftover)
     translation_notes += acls_notes
 
@@ -521,7 +522,7 @@ if __name__ == "__main__":
     config_remaining_name = "ned_configuration_remaining_acls"
     oc_name = "openconfig_acls"
     common.print_and_test_configs(
-        "xe1", config_before_dict, config_leftover_dict, openconfig_acls, 
+        "xe", config_before_dict, config_leftover_dict, openconfig_acls,
         config_name, config_remaining_name, oc_name, acls_notes)
 else:
     # This is needed for now due to top level __init__.py.

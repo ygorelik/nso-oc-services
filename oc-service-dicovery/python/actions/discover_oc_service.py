@@ -36,12 +36,12 @@ except ImportError:
     from utilities import get_device_config, get_device_ned_id, json_to_str
     from utilities import read_device_config
 
-python_dir = Path(__file__).parent.parent.absolute()
-package_nso_to_oc_dir = os.path.join(python_dir, 'package_nso_to_oc')
+nso_dir = Path(__file__).parent.parent.parent.parent.absolute()
+package_nso_to_oc_dir = os.path.join(nso_dir, 'package_nso_to_oc')
 if not (os.path.exists(package_nso_to_oc_dir) and os.path.isdir(package_nso_to_oc_dir)):
     print("ERROR: The nso-oc-service package_nso_to_oc is not installed properly")
     exit(1)
-sys.path.append(str(python_dir))
+sys.path.append(str(package_nso_to_oc_dir))
 
 
 class DiscoverOcService(Action):
@@ -243,9 +243,9 @@ if __name__ == '__main__':
     import ncs
 
     mylog = ncs.log.Log(logging.getLogger(__name__))
-    dev_name = 'xr'
-    ned = 'cisco-iosxr-cli'
-    oc_service = 'acls'
+    dev_name = 'xe'
+    ned = 'cisco-ios-cli'
+    oc_service = 'network-instance'
     oc_cfg, left = get_oc_service(dev_name, ned, oc_service, mylog)
     if oc_cfg:
         print("Discovered openconfig services:")

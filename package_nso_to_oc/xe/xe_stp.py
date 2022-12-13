@@ -533,8 +533,9 @@ if __name__ == "__main__":
         "xeswitch1", config_before_dict, config_leftover_dict, openconfig_spanning_tree,
         config_name, config_remaining_name, oc_name, stp_notes)
 else:
-    # This is needed for now due to top level __init__.py. We need to determine if contents in __init__.py is still necessary.
-    if (find_spec("package_nso_to_oc") is not None):
+    # This is needed for now due to top level __init__.py.
+    # We need to determine if contents in __init__.py is still necessary.
+    if find_spec("package_nso_to_oc") is not None:
         from package_nso_to_oc.xe import common_xe
         from package_nso_to_oc import common
     else:

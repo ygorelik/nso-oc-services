@@ -11,12 +11,13 @@ from pathlib import Path
 # To be able to import top-level common
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-import common
+from package_nso_to_oc import common
 
-def init_xe_configs(device_name = "xe1"):
+
+def init_xe_configs(device_name):
     (nso_host, nso_username, nso_password) = common.get_nso_creds()
-    nso_device = os.environ.get("NSO_DEVICE", device_name)
-    config_before_dict = common.nso_get_device_config(nso_host, nso_username, nso_password, nso_device)
+    # nso_device = os.environ.get("NSO_DEVICE", device_name)
+    config_before_dict = common.nso_get_device_config(nso_host, nso_username, nso_password, device_name)
     config_leftover_dict = copy.deepcopy(config_before_dict)
     interface_ip_dict = common.xe_system_get_interface_ip_address(config_before_dict)
 

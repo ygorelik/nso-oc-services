@@ -318,7 +318,7 @@ def xe_configure_ipv4_interface(nso_before_interface: dict, nso_leftover_interfa
 
 
 def xe_configure_tunnel_ipv4_interface(nso_before_interface: dict, nso_leftover_interface: dict,
-                                openconfig_interface: dict) -> None:
+                                       openconfig_interface: dict) -> None:
     """Tunnel IPv4 interface configurations"""
     oc_ipv4_structure = {"openconfig-if-tunnel:ipv4": {"openconfig-if-tunnel:addresses": {"openconfig-if-tunnel:address": []},
                                                    "openconfig-if-tunnel:config": {}}}

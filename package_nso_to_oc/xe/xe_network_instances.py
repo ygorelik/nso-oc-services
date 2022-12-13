@@ -106,8 +106,8 @@ def get_interfaces_by_vrf(config_before):
 
 
 def configure_network_instances(config_before, config_leftover, interfaces_by_vrf):
-    for net_inst in openconfig_network_instances["openconfig-network-instance:network-instances"]\
-            ["openconfig-network-instance:network-instance"]:
+    for net_inst in openconfig_network_instances["openconfig-network-instance:network-instances"][
+            "openconfig-network-instance:network-instance"]:
         configure_network_interfaces(net_inst, interfaces_by_vrf)
 
         if len(interfaces_by_vrf.get(net_inst["openconfig-network-instance:name"], [])) > 0:
