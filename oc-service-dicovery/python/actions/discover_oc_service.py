@@ -158,7 +158,7 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
             oc['mdd:openconfig'].update(openconfig_network_instances)
             components = ["tailf-ned-cisco-ios:interface"]
             leftover = build_config_leftover(device_name, config_leftover, components)
-        elif 'acl' == input_service:
+        elif 'acls' == input_service:
             openconfig_acls = xe_acls.main(device_config, config_leftover, translation_notes)
             oc['mdd:openconfig'].update(openconfig_acls)
             components = ["openconfig-acl:acl", "openconfig-acl:ip",
@@ -181,7 +181,7 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
             return {}, leftover
 
     elif 'cisco-iosxr-cli' == ned_id:
-        from package_nso_to_oc.xr import xr_system, xr_interfaces
+        from package_nso_to_oc.xr import xr_system, xr_interfaces, xr_acls
 
         if 'interfaces' == input_service:
             openconfig_interfaces = xr_interfaces.main(device_config, config_leftover, translation_notes)
@@ -191,6 +191,11 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
             openconfig_system = xr_system.main(device_config, config_leftover, translation_notes)
             oc['mdd:openconfig'].update(openconfig_system)
             components = ["openconfig-system:system"]
+            leftover = build_config_leftover(device_name, config_leftover, components)
+        elif 'acls' == input_service:
+            openconfig_system = xr_acls.main(device_config, config_leftover, translation_notes)
+            oc['mdd:openconfig'].update(openconfig_system)
+            components = ["openconfig-acl:acl"]
             leftover = build_config_leftover(device_name, config_leftover, components)
         else:
             _log_and_result(f"ERROR: Openconfig service {input_service} is not supported on {ned_id} NED",
@@ -238,19 +243,20 @@ if __name__ == '__main__':
     import ncs
 
     mylog = ncs.log.Log(logging.getLogger(__name__))
-    dev_name = 'rwp4-r-201'
+    dev_name = 'xr'
     ned = 'cisco-iosxr-cli'
-    oc_service = 'interfaces'
+    oc_service = 'acls'
     oc_cfg, left = get_oc_service(dev_name, ned, oc_service, mylog)
-    print("Discovered openconfig services:")
-    print(json_to_str(oc_cfg))
-    print("\nLeftover not translated NSO configuration:")
-    print(json_to_str(left))
-    exit(0)
-
-    print(f"\nApplying commit dry-run to discovered {oc_service} OC service:")
-    result = apply_service(dev_name, oc_cfg, "dry-run")
-    print(result)
-    if left:
-        print("\nDevice config not in the OC service:")
+    if oc_cfg:
+        print("Discovered openconfig services:")
+        print(json_to_str(oc_cfg))
+        print("\nLeftover not translated NSO configuration:")
         print(json_to_str(left))
+        # exit(0)
+
+        print(f"\nApplying commit dry-run to discovered {oc_service} OC service:")
+        result = apply_service(dev_name, oc_cfg, "dry-run")
+        print(result)
+        if left:
+            print("\nDevice config not in the OC service:")
+            print(json_to_str(left))
