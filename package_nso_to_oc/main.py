@@ -27,8 +27,8 @@ if __name__ == "__main__":
     nso_host = os.environ.get("NSO_HOST", "localhost")
     nso_username = os.environ.get("NSO_USERNAME", "admin")
     nso_password = os.environ.get("NSO_PASSWORD", "admin")
-    nso_device = os.environ.get("NSO_DEVICE", "xe")
-    device_os = os.environ.get("DEVICE_OS", common.XE)
+    nso_device = os.environ.get("NSO_DEVICE", "xr")
+    device_os = os.environ.get("DEVICE_OS", common.XR)
     test = os.environ.get("TEST", "False")
 
     # Append any pertinent notes here. This will be printed out in output_data directory
