@@ -12,17 +12,17 @@ XE = "xe"
 XR = "xr"
 
 
-def nso_get_device_config(host: str, username: str, password: str, device: str) -> dict:
+def nso_get_device_config(nso_api_url: str, username: str, password: str, device: str) -> dict:
     """
     Get device configuration from NSO. Return configuration as python dict.
-    :param host: IP or hostname: str
+    :param nso_api_url: str
     :param username: str
     :param password: str
     :param device: str
     :return: NSO Device configuration
     """
-    url = f"http://{host}:8080/restconf/data/tailf-ncs:devices/device={device}/config"
-    req = urllib3.PoolManager()
+    url = f"{nso_api_url}/restconf/data/tailf-ncs:devices/device={device}/config"
+    req = urllib3.PoolManager(cert_reqs='CERT_NONE')
     headers = urllib3.make_headers(basic_auth=f"{username}:{password}")
     headers.update({"Content-Type": "application/yang-data+json",
                     "Accept": "application/yang-data+json"})
@@ -54,18 +54,18 @@ def xe_system_get_interface_ip_address(config_before: dict) -> dict:
     return interface_ip_name
 
 
-def test_nso_program_oc(host: str, username: str, password: str, device: str, oc_config: dict) -> None:
+def test_nso_program_oc(nso_api_url: str, username: str, password: str, device: str, oc_config: dict) -> None:
     """
     Send translated Openconfig device configuration to NSO
-    :param host: str
+    :param nso_api_url: str
     :param username: str
     :param password: str
     :param device: str
     :param oc_config: dict
     :return: None
     """
-    url = f"http://{host}:8080/restconf/data/tailf-ncs:devices/device={device}/mdd:openconfig"
-    req = urllib3.PoolManager()
+    url = f"{nso_api_url}/restconf/data/tailf-ncs:devices/device={device}/mdd:openconfig"
+    req = urllib3.PoolManager(cert_reqs='CERT_NONE')
     headers = urllib3.make_headers(basic_auth=f"{username}:{password}")
     headers.update({"Content-Type": "application/yang-data+json",
                     "Accept": "application/yang-data+json"})
@@ -104,21 +104,21 @@ def print_and_test_configs(device_name, config_before_dict, config_leftover_dict
 
     if len(translation_notes) > 0:
         # Only print to file, if actual notes exist.
-        with open(f"{device_path}_{oc_name}_notes.txt", "w") as o:
+        with open(f"{output_data_dir}{nso_device}_{oc_name}_notes.txt", "w") as o:
             # We run it through a map, just in case an element in our list of notes contain non-string type.
             # Otherwise, we risk an error when joining.
             o.write("\n\n".join(map(lambda note: str(note), translation_notes)))
 
     if test == "True":
-        test_nso_program_oc(nso_host, nso_username, nso_password, nso_device, oc)
+        test_nso_program_oc(nso_api_url, nso_username, nso_password, nso_device, oc)
 
 
 def get_nso_creds():
-    nso_host = os.environ.get("NSO_HOST", "localhost")
-    nso_username = os.environ.get("NSO_USERNAME", "admin")
+    nso_api_url = os.environ.get("NSO_URL")
+    nso_username = os.environ.get("NSO_USERNAME", "ubuntu")
     nso_password = os.environ.get("NSO_PASSWORD", "admin")
 
-    return nso_host, nso_username, nso_password
+    return nso_api_url, nso_username, nso_password
 
 
 def get_interface_type_number_and_subinterface(interface: str) -> Tuple[str, str]:

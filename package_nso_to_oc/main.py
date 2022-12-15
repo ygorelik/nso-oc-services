@@ -9,7 +9,7 @@ NSO device configuration minus parts replaced by OpenConfig to a file named
 {nso_device}_full_openconfig.json.
 
 The script requires the following environment variables:
-NSO_HOST - IP address or hostname for the NSO server
+NSO_URL - URL for the NSO Webserver
 NSO_USERNAME
 NSO_PASSWORD
 NSO_DEVICE - NSO device name for configuration translation
