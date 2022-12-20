@@ -33,6 +33,7 @@ module oc-service-discovery {
             enum acl;
             enum interfaces;
             enum network-instance;
+            enum routing-policy;
             enum system;
             enum stp;
           }

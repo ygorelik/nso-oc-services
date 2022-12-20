@@ -142,7 +142,8 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
     leftover = {}
 
     if 'cisco-ios-cli' == ned_id:
-        from package_nso_to_oc.xe import xe_network_instances, xe_vlans, xe_interfaces, xe_system, xe_stp, xe_acls
+        from package_nso_to_oc.xe import xe_network_instances, xe_vlans, xe_interfaces,\
+            xe_system, xe_stp, xe_acls, xe_routing_policy
         from package_nso_to_oc import common
 
         interface_ip_name_dict = common.xe_system_get_interface_ip_address(device_config)
@@ -170,6 +171,11 @@ def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, ou
             oc['mdd:openconfig'].update(openconfig_acls)
             components = ["openconfig-acl:acl", "openconfig-acl:ip",
                           "tailf-ned-cisco-ios:ntp", "tailf-ned-cisco-ios:line"]
+            leftover = build_config_leftover(device_name, config_leftover, components)
+        elif 'routing-policy' == input_service:
+            openconfig_routing_policy = xe_routing_policy.main(device_config, config_leftover, translation_notes)
+            oc['mdd:openconfig'].update(openconfig_routing_policy)
+            components = ["openconfig-routing-policy:routing-policy"]
             leftover = build_config_leftover(device_name, config_leftover, components)
         elif 'system' == input_service:
             openconfig_system = xe_system.main(
@@ -250,9 +256,9 @@ if __name__ == '__main__':
     import ncs
 
     mylog = ncs.log.Log(logging.getLogger(__name__))
-    dev_name = 'xr'
-    ned = 'cisco-iosxr-cli'
-    oc_service = 'acl'
+    dev_name = 'xe'
+    ned = 'cisco-ios-cli'
+    oc_service = 'routing-policy'
     oc_cfg, left = get_oc_service(dev_name, ned, oc_service, mylog)
     if oc_cfg:
         print("Discovered openconfig services:")
