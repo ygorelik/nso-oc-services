@@ -359,7 +359,10 @@ def xe_system_ntp(config_before: dict, config_leftover: dict, if_ip: dict) -> No
                 openconfig_system_ntp["openconfig-system:ntp-keys"]["openconfig-system:ntp-key"].append(key_dict)
 
                 config_leftover["tailf-ned-cisco-ios:ntp"]["authentication-key"].remove(auth_key)
-                config_leftover["tailf-ned-cisco-ios:ntp"]["trusted-key"].remove({"key-number": auth_key["number"]})
+                try:  # trusted-keys can use a starting number, hyphen, and ending number in NED. Skip remove if this is the case.
+                    config_leftover["tailf-ned-cisco-ios:ntp"]["trusted-key"].remove({"key-number": auth_key["number"]})
+                except:
+                    pass
 
     if config_before.get("tailf-ned-cisco-ios:ntp", {}).get("peer") or config_before.get("tailf-ned-cisco-ios:ntp",
                                                                                          {}).get("server"):
@@ -432,9 +435,9 @@ if __name__ == "__main__":
 
     (config_before_dict, config_leftover_dict, interface_ip_dict) = common_xe.init_xe_configs()
     main(config_before_dict, config_leftover_dict, interface_ip_dict)
-    config_name = "configuration"
-    config_remaining_name = "configuration_remaining"
-    oc_name = "openconfig_system"
+    config_name = "_system"
+    config_remaining_name = "_remaining_system"
+    oc_name = "_openconfig_system"
     common.print_and_test_configs("xe1", config_before_dict, config_leftover_dict, openconfig_system, 
         config_name, config_remaining_name, oc_name, system_notes)
 else:

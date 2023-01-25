@@ -14,6 +14,12 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from package_nso_to_oc import common
 
 
+# XE static route keys
+IP_FORWARDING_LIST = "ip-route-forwarding-list"
+INTF_LIST = "ip-route-interface-list"
+IP_INTF_FORWARDING_LIST = "ip-route-interface-forwarding-list"
+
+
 def init_xe_configs(device_name):
     (nso_host, nso_username, nso_password) = common.get_nso_creds()
     # nso_device = os.environ.get("NSO_DEVICE", device_name)

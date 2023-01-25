@@ -157,10 +157,10 @@ class BaseAcl:
             starting_index = 0
         if rule_parts[starting_index] == "remark":
             acls_note_add(f"""
-                Access-list {self._xe_acl_set.get("id")} contains remarks.
+                Access-list {self._xe_acl_set.get("id")} sequence number {seq_id} is a remark.
                 ACL remarks are not supported in Openconfig
                 If you want to keep the below remark, you should add it to your source of truth:
-                "{access_rule["rule"]}"
+                "{seq_id} {access_rule["rule"]}"
             """)
             return success
         entry = {
@@ -178,14 +178,14 @@ class BaseAcl:
             if self._acl_type == "ACL_IPV4":
                 # Destination IP (if exists)
                 current_index = self.__set_ip_and_port(rule_parts, current_index, entry, False, starting_index)
+            if (len(rule_parts) > current_index and rule_parts[current_index] == "log-input") or (
+                    len(rule_parts) > current_index and rule_parts[current_index] == "log"):
+                entry["openconfig-acl:actions"]["openconfig-acl:config"]["openconfig-acl:log-action"] = "LOG_SYSLOG"
+            else:
+                entry["openconfig-acl:actions"]["openconfig-acl:config"]["openconfig-acl:log-action"] = "LOG_NONE"
+
         except Exception as err:
             success = False
-
-        if (len(rule_parts) > current_index and rule_parts[current_index] == "log-input") or (
-                len(rule_parts) > current_index and rule_parts[current_index] == "log"):
-            entry["openconfig-acl:actions"]["openconfig-acl:config"]["openconfig-acl:log-action"] = "LOG_SYSLOG"
-        else:
-            entry["openconfig-acl:actions"]["openconfig-acl:config"]["openconfig-acl:log-action"] = "LOG_NONE"
 
         if success:
             acl_set["openconfig-acl:acl-entries"]["openconfig-acl:acl-entry"].append(entry)
@@ -299,11 +299,14 @@ class BaseAcl:
 
         try:
             current_port = current_port if current_port.isdigit() else socket.getservbyname(current_port)
-        except Exception as err:
-            self.__add_acl_entry_note(" ".join(rule_parts),
-                                      f"Unable to convert service {current_port} to a port number")
-            self.acl_success = False
-            raise Exception
+        except OSError:
+            try:
+                current_port = common.port_name_number_mapping[current_port]
+            except Exception as err:
+                self.__add_acl_entry_note(" ".join(rule_parts),
+                                          f"Unable to convert service {current_port} to a port number")
+                self.acl_success = False
+                raise Exception
 
         if rule_parts[current_index] == "range":
             end_port = rule_parts[current_index + 2]
@@ -601,9 +604,9 @@ if __name__ == "__main__":
 
     (config_before_dict, config_leftover_dict, interface_ip_dict) = common_xe.init_xe_configs()
     main(config_before_dict, config_leftover_dict)
-    config_name = "ned_configuration_acls"
-    config_remaining_name = "ned_configuration_remaining_acls"
-    oc_name = "openconfig_acls"
+    config_name = "_acls"
+    config_remaining_name = "_remaining_acls"
+    oc_name = "_openconfig_acls"
     common.print_and_test_configs(
         "xe1", config_before_dict, config_leftover_dict, openconfig_acls,
         config_name, config_remaining_name, oc_name, acls_notes)

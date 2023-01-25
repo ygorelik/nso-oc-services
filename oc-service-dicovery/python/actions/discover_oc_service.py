@@ -258,12 +258,12 @@ if __name__ == '__main__':
     mylog = ncs.log.Log(logging.getLogger(__name__))
     dev_name = 'xe'
     ned = 'cisco-ios-cli'
-    oc_service = 'routing-policy'
+    oc_service = 'interfaces'
     oc_cfg, left = get_oc_service(dev_name, ned, oc_service, mylog)
     if oc_cfg:
-        print("Discovered openconfig services:")
+        print(f"Discovered openconfig service '{oc_service}':")
         print(json_to_str(oc_cfg))
-        print("\nLeftover not translated NSO configuration:")
+        print("\nNot translated NSO configuration:")
         print(json_to_str(left))
         # exit(0)
 

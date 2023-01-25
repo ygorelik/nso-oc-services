@@ -15,8 +15,11 @@ NSO_PASSWORD
 NSO_DEVICE - NSO device name for configuration translation
 TEST - True or False. True enables sending the OpenConfig to the NSO server after generation
 """
+
 import copy
+import json
 import os
+from importlib.util import find_spec
 
 import common
 from xe import main_xe
@@ -24,7 +27,7 @@ from xr import main_xr
 
 
 if __name__ == "__main__":
-    nso_host = os.environ.get("NSO_HOST", "localhost")
+    nso_api_url = os.environ.get("NSO_URL", 'http://localhost')
     nso_username = os.environ.get("NSO_USERNAME", "admin")
     nso_password = os.environ.get("NSO_PASSWORD", "admin")
     nso_device = os.environ.get("NSO_DEVICE", "xr")
@@ -33,7 +36,7 @@ if __name__ == "__main__":
 
     # Append any pertinent notes here. This will be printed out in output_data directory
     translation_notes = []
-    config_before_dict = common.nso_get_device_config(nso_host, nso_username, nso_password, nso_device)
+    config_before_dict = common.nso_get_device_config(nso_api_url, nso_username, nso_password, nso_device)
     configs_leftover = copy.deepcopy(config_before_dict)
     oc = {"mdd:openconfig": {}}
 
@@ -42,8 +45,8 @@ if __name__ == "__main__":
     elif device_os == common.XR:
         main_xr.build_xr_to_oc(config_before_dict, configs_leftover, oc, translation_notes)
 
-    config_name = "full_ned_configuration"
-    config_remaining_name = "full_ned_configuration_remaining"
-    oc_name = "full_openconfig"
+    config_name = ""
+    config_remaining_name = "_remaining"
+    oc_name = "_openconfig"
     common.print_and_test_configs(nso_device, config_before_dict, configs_leftover, oc, config_name,
                                   config_remaining_name, oc_name, translation_notes)
