@@ -256,9 +256,9 @@ if __name__ == '__main__':
     import ncs
 
     mylog = ncs.log.Log(logging.getLogger(__name__))
-    dev_name = 'ios'
+    dev_name = 'xe-65'
     ned = 'cisco-ios-cli'
-    oc_service = 'system'
+    oc_service = 'network-instance'
     oc_cfg, left = get_oc_service(dev_name, ned, oc_service, mylog)
     if oc_cfg:
         print(f"Discovered openconfig service '{oc_service}':")

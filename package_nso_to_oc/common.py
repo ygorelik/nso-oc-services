@@ -39,6 +39,9 @@ def xe_system_get_interface_ip_address(config_before: dict) -> dict:
     :return: interface_ip_name dict
     """
     interface_ip_name = {}
+    if "tailf-ned-cisco-ios:interface" not in config_before:
+        return interface_ip_name
+
     for if_type in config_before["tailf-ned-cisco-ios:interface"]:
         temp_dict = {}
         if if_type == "Port-channel-subinterface":

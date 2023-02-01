@@ -18,6 +18,8 @@ TEST - True or False. True enables sending the OpenConfig to the NSO server afte
 import sys
 from importlib.util import find_spec
 
+TACACS = "tacacs"
+RADIUS = "radius"
 system_notes = []
 
 openconfig_system = {
@@ -61,7 +63,6 @@ openconfig_system = {
         }
     }
 }
-
 
 def xe_system_services(config_before: dict, config_leftover: dict) -> None:
     """
@@ -236,8 +237,7 @@ def xe_system_ssh_server(config_before: dict, config_leftover: dict) -> None:
     """
     Translates NSO XE NED to MDD OpenConfig System SSH Server
     """
-    openconfig_system_ssh_server_config = openconfig_system["openconfig-system:system"]["openconfig-system:ssh-server"][
-        "openconfig-system:config"]
+    openconfig_system_ssh_server_config = openconfig_system["openconfig-system:system"]["openconfig-system:ssh-server"]["openconfig-system:config"]
     openconfig_system_ssh_server_alg_config = openconfig_system["openconfig-system:system"]["openconfig-system:ssh-server"]["openconfig-system-ext:algorithm"]["openconfig-system-ext:config"]
 
     if config_before.get("tailf-ned-cisco-ios:ip", {}).get("ssh", {}).get("time-out"):
@@ -276,19 +276,13 @@ def xe_system_ssh_server(config_before: dict, config_leftover: dict) -> None:
                 config_before["tailf-ned-cisco-ios:line"]["vty"][0].get("session-limit")
             del config_leftover["tailf-ned-cisco-ios:line"]["vty"][0]["session-limit"]
 
-    if type(config_before.get("tailf-ned-cisco-ios:ip", {}).get("ssh", {}).get("server", {}).
-            get("algorithm", {}).get("encryption", '')) is list:
-        openconfig_system_ssh_server_alg_config["openconfig-system-ext:encryption"] = \
-            config_before.get("tailf-ned-cisco-ios:ip", {}).get("ssh", {}).get("server", {}).\
-            get("algorithm", {}).get("encryption")
+    if type(config_before.get("tailf-ned-cisco-ios:ip", {}).get("ssh", {}).get("server", {}).get("algorithm", {}).get("encryption", '')) is list:
+        openconfig_system_ssh_server_alg_config["openconfig-system-ext:encryption"] = config_before.get("tailf-ned-cisco-ios:ip", {}).get("ssh", {}).get("server", {}).get("algorithm", {}).get("encryption")
         del config_leftover["tailf-ned-cisco-ios:ip"]["ssh"]["server"]["algorithm"]["encryption"]
 
-    if type(config_before.get("tailf-ned-cisco-ios:ip", {}).get("ssh", {}).get("server", {}).get("algorithm", {}).
-            get("mac", '')) is list:
-        openconfig_system_ssh_server_alg_config["openconfig-system-ext:mac"] = \
-            config_before.get("tailf-ned-cisco-ios:ip", {}).get("ssh", {}).get("server", {}).get("algorithm", {}).get("mac")
+    if type(config_before.get("tailf-ned-cisco-ios:ip", {}).get("ssh", {}).get("server", {}).get("algorithm", {}).get("mac", '')) is list:
+        openconfig_system_ssh_server_alg_config["openconfig-system-ext:mac"] = config_before.get("tailf-ned-cisco-ios:ip", {}).get("ssh", {}).get("server", {}).get("algorithm", {}).get("mac")
         del config_leftover["tailf-ned-cisco-ios:ip"]["ssh"]["server"]["algorithm"]["mac"]
-
 
 def xe_add_oc_ntp_server(before_ntp_server_list: list, after_ntp_server_list: list, openconfig_ntp_server_list: list,
                          ntp_type: str, ntp_vrf: str, if_ip: dict) -> None:
@@ -463,6 +457,20 @@ def xe_system_aaa(config_before: dict, config_leftover: dict, if_ip: dict) -> No
             "openconfig-system:users": set_authentication_user(oc_system_aaa_authentication, config_leftover, authentication_user_list)
         }
         oc_system_aaa_authentication.update(temp_aaa_authentication)
+
+        updated_usernames = []
+
+        for username in config_leftover.get("tailf-ned-cisco-ios:username", []):
+            if username:
+                updated_usernames.append(username)
+
+        if len(updated_usernames) > 0:
+            config_leftover["tailf-ned-cisco-ios:username"] = updated_usernames
+        elif "tailf-ned-cisco-ios:username" in config_leftover:
+            del config_leftover["tailf-ned-cisco-ios:username"]
+
+    cleanup_server_access(config_leftover, f"{TACACS}-plus", TACACS)
+    cleanup_server_access(config_leftover, RADIUS, RADIUS)
 
 def process_aaa_tacacs(oc_system_server_group, config_leftover, if_ip, tacacs_group_index, tacacs_group, tacacs_server_list):
     tacacs_group_leftover = config_leftover.get("tailf-ned-cisco-ios:aaa", {}).get("group", {}).get("server", {}).get("tacacs-plus")[tacacs_group_index]
@@ -826,6 +834,33 @@ def set_authentication_user(oc_system_aaa_authentication, config_leftover, authe
 
     return authe_user
 
+def cleanup_server_access(config_leftover, group_access_type, access_type):
+    if len(config_leftover.get("tailf-ned-cisco-ios:aaa", {}).get("group", {}).get("server", {}).get(group_access_type, [])) < 1:
+        return
+
+    updated_server_list = []
+
+    for group_access_type_server in config_leftover["tailf-ned-cisco-ios:aaa"]["group"]["server"][group_access_type]:
+        updated_server_names = []
+
+        for name in group_access_type_server.get("server", {}).get("name", []):
+            if name and name.get("name"):
+                updated_server_names.append(name)
+
+        if len(updated_server_names) > 0:
+            group_access_type_server["server"]["name"] = updated_server_names
+        elif "name" in group_access_type_server.get("server", {}):
+            del group_access_type_server["server"]["name"]
+
+    for server in config_leftover.get(f"tailf-ned-cisco-ios:{access_type}", {}).get("server", []):
+        if server and len(server) > 0:
+            updated_server_list.append(server)
+
+    if len(updated_server_list) > 0:
+        config_leftover[f"tailf-ned-cisco-ios:{access_type}"]["server"] = updated_server_list
+    elif "server" in config_leftover.get(f"tailf-ned-cisco-ios:{access_type}", {}):
+        del config_leftover[f"tailf-ned-cisco-ios:{access_type}"]["server"]
+
 def main(before: dict, leftover: dict, if_ip: dict, translation_notes: list = []) -> dict:
     """
     Translates NSO Device configurations to MDD OpenConfig configurations.
@@ -846,7 +881,7 @@ def main(before: dict, leftover: dict, if_ip: dict, translation_notes: list = []
     xe_system_services(before, leftover)
     xe_system_ssh_server(before, leftover)
     xe_system_ntp(before, leftover, if_ip)
-    xe_system_aaa(before, leftover, if_ip)
+    # xe_system_aaa(before, leftover, if_ip)
     translation_notes += system_notes
 
     return openconfig_system
