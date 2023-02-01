@@ -4,13 +4,24 @@ import os
 import json
 import urllib3
 import re
-from pathlib import Path
+from pathlib import Path, os as path_os
 from typing import Tuple
+
 
 # Different device OS
 XE = "xe"
 XR = "xr"
 
+# In case Host OS can't resolve port name to number for ACLs
+port_name_number_mapping = {"netbios-ss": 139,
+                            "non500-isakmp": 4500,
+                            "lpd": 515}
+
+# Determine the project root dir, where we will create our output_data dir (if it doesn't exist).
+# output_data_dir is meant to contain data/config files that we don't want in version control.
+project_path = str(Path(__file__).resolve().parents[1])
+output_data_dir = f"{project_path}{path_os.sep}output_data{path_os.sep}"
+Path(output_data_dir).mkdir(parents=True, exist_ok=True)
 
 def nso_get_device_config(nso_api_url: str, username: str, password: str, device: str) -> dict:
     """
@@ -90,7 +101,7 @@ def test_nso_program_oc(nso_api_url: str, username: str, password: str, device: 
 
 
 def print_and_test_configs(device_name, config_before_dict, config_leftover_dict, oc, config_name,
-                           config_remaining_name, oc_name, translation_notes = []):
+                           config_remaining_name, oc_name, translation_notes=[]):
     (nso_api_url, nso_username, nso_password) = get_nso_creds()
     nso_device = os.environ.get("NSO_DEVICE", device_name)
     test = os.environ.get("TEST", "False")

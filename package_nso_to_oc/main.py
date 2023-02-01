@@ -9,17 +9,19 @@ NSO device configuration minus parts replaced by OpenConfig to a file named
 {nso_device}_full_openconfig.json.
 
 The script requires the following environment variables:
-NSO_URL - URL for the NSO Webserver
-NSO_USERNAME
-NSO_PASSWORD
-NSO_DEVICE - NSO device name for configuration translation
-TEST - True or False. True enables sending the OpenConfig to the NSO server after generation
+always:
+- NSO_DEVICE - NSO device name for configuration translation
+- TEST - True or False (default False). True enables sending the OpenConfig to the NSO server after generation
+if pulling configs from NSO:
+- NSO_URL - URL for the NSO server
+- NSO_USERNAME
+- NSO_PASSWORD
+elif reading in from file:
+- NSO_NED_FILE (path and filename)
 """
 
 import copy
-import json
 import os
-from importlib.util import find_spec
 
 import common
 from xe import main_xe
