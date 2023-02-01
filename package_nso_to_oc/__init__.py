@@ -22,7 +22,7 @@ openconfig_json = package_nso_to_oc.xe.xe_system.main(package_nso_to_oc.config_b
                                                       package_nso_to_oc.configs_leftover,
                                                       package_nso_to_oc.interface_ip_name_dict)
 print(openconfig_json)
-"""
+
 import copy
 import json
 import os
@@ -54,3 +54,4 @@ configs_leftover = copy.deepcopy(config_before_dict)
 
 if device_os == common.XE:
     interface_ip_name_dict = common.xe_system_get_interface_ip_address(config_before_dict)
+"""

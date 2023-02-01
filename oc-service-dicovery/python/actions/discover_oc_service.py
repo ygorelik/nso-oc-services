@@ -263,13 +263,11 @@ if __name__ == '__main__':
     if oc_cfg:
         print(f"Discovered openconfig service '{oc_service}':")
         print(json_to_str(oc_cfg))
-        print("\nNot translated NSO configuration:")
-        print(json_to_str(left))
+        if left:
+            print("\nNot translated NSO configuration:")
+            print(json_to_str(left))
         # exit(0)
 
         print(f"\nApplying commit dry-run to discovered {oc_service} OC service:")
         result = apply_service(dev_name, oc_cfg, "dry-run")
         print(result)
-        if left:
-            print("\nDevice config not in the OC service:")
-            print(json_to_str(left))
