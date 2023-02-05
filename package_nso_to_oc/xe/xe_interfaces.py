@@ -242,7 +242,6 @@ def xe_configure_ipv4_interface(nso_before_interface: dict, nso_leftover_interfa
             ipv4_address_structure.update({"openconfig-if-ip:ip": ip,
                                            "openconfig-if-ip:config": {"openconfig-if-ip:ip": ip,
                                                                        "openconfig-if-ip:prefix-length": mask}})
-            del nso_leftover_interface["ip"]["address"]["primary"]
             if not nso_leftover_interface["ip"]["address"]:
                 del nso_leftover_interface["ip"]["address"]
 
