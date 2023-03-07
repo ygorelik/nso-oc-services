@@ -1247,7 +1247,7 @@ def xe_system_clock_timezone(config_before: dict, config_leftover: dict) -> None
     zone = config_before.get("tailf-ned-cisco-ios:clock", {}).get("timezone", {}).get("zone")
     hours = config_before.get("tailf-ned-cisco-ios:clock", {}).get("timezone", {}).get("hours")
     minutes = config_before.get("tailf-ned-cisco-ios:clock", {}).get("timezone", {}).get("minutes")
-    
+
     if zone and len(zone) == 3:
         timezone_name[0] = zone
         del config_leftover["tailf-ned-cisco-ios:clock"]["timezone"]["zone"]
@@ -1261,6 +1261,14 @@ def xe_system_clock_timezone(config_before: dict, config_leftover: dict) -> None
         del config_leftover["tailf-ned-cisco-ios:clock"]["timezone"]["minutes"]
 
     openconfig_system_clock_config["openconfig-system:timezone-name"] = ' '.join(timezone_name)
+
+    # Clean up clock remaining
+    if type(config_leftover.get("tailf-ned-cisco-ios:clock", {}).get("timezone", "")) is dict and len(config_leftover.get("tailf-ned-cisco-ios:clock", {}).get("timezone")) == 0:
+        del config_leftover["tailf-ned-cisco-ios:clock"]["timezone"]
+    if type(config_leftover.get("tailf-ned-cisco-ios:clock", "")) is dict and len(
+            config_leftover.get("tailf-ned-cisco-ios:clock")) == 0:
+        del config_leftover["tailf-ned-cisco-ios:clock"]
+
 
 def xe_system_timestamps(config_before: dict, config_leftover: dict) -> None:
     """
@@ -1280,8 +1288,12 @@ def xe_system_timestamps(config_before: dict, config_leftover: dict) -> None:
                 del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["debug"]["datetime"]["msec"]
             if "localtime" in timestamps["debug"]["datetime"]:
                 del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["debug"]["datetime"]["localtime"]
+            if len(config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["debug"]["datetime"]) == 0:
+                del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["debug"]["datetime"]
         elif "debug" in timestamps and "uptime" in timestamps["debug"]:
             del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["debug"]["uptime"]
+        if len(config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["debug"]) == 0:
+            del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["debug"]
     # TIMESTAMPS LOG
     if log:
         temp_timestamps_log = {"openconfig-system-ext:logging": set_timestamps(log, config_leftover, timestamps)}
@@ -1291,8 +1303,16 @@ def xe_system_timestamps(config_before: dict, config_leftover: dict) -> None:
                 del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["log"]["datetime"]["msec"]
             if "localtime" in timestamps["log"]["datetime"]:
                 del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["log"]["datetime"]["localtime"]
+            if len(config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["log"]["datetime"]) == 0:
+                del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["log"]["datetime"]
         elif "log" in timestamps and "uptime" in timestamps["log"]:
             del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["log"]["uptime"]
+        if len(config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["log"]) == 0:
+            del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["log"]
+    # Clean up timestamps
+    if len(config_leftover["tailf-ned-cisco-ios:service"].get("timestamps")) == 0:
+        del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]
+
 
 def set_timestamps(service, config_leftover, timestamps):
     datetime = uptime = localtime = False # Initialize variables
@@ -1434,7 +1454,7 @@ if __name__ == "__main__":
     config_name = "_system"
     config_remaining_name = "_remaining_system"
     oc_name = "_openconfig_system"
-    common.print_and_test_configs("xe1", config_before_dict, config_leftover_dict, openconfig_system, 
+    common.print_and_test_configs("xe1", config_before_dict, config_leftover_dict, openconfig_system,
         config_name, config_remaining_name, oc_name, system_notes)
 else:
     # This is needed for now due to top level __init__.py.

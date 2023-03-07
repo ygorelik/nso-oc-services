@@ -133,8 +133,13 @@ def build_config_leftover(device_name: str, leftover: dict, keys_include: list) 
 
 def get_oc_service(device_name: str, ned_id: str, input_service: str, logger, output_=None) -> (dict, dict):
     nso_device_config = get_device_config(device_name)
-    # nso_device_config = read_device_config(device_name)
-    # print(nso_device_config)
+    if nso_device_config is None:
+        _log_and_result(f"ERROR: Failed to retrieve {device_name} device configuration",
+                        output_, logger.error)
+        return {}, {}
+
+    # print(json_to_str(nso_device_config))
+
     device_config = nso_device_config["tailf-ncs:devices"]["device"][0]["config"]
     translation_notes = []
     config_leftover = copy.deepcopy(device_config)

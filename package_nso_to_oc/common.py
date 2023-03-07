@@ -4,9 +4,17 @@ import os
 import json
 import urllib3
 import re
+import ipaddress
 from pathlib import Path, os as path_os
 from typing import Tuple
 
+
+if os.environ.get("NSO_URL", False) and os.environ.get("NSO_NED_FILE", False):
+    print("environment variable NSO_URL or NSO_NED_FILE must be set: not both")
+    exit()
+elif not os.environ.get("NSO_URL", False) and not os.environ.get("NSO_NED_FILE", False):
+    print("environment variable NSO_URL or NSO_NED_FILE must be set")
+    exit()
 
 # Different device OS
 XE = "xe"
@@ -17,11 +25,13 @@ port_name_number_mapping = {"netbios-ss": 139,
                             "non500-isakmp": 4500,
                             "lpd": 515}
 
-# Determine the project root dir, where we will create our output_data dir (if it doesn't exist).
-# output_data_dir is meant to contain data/config files that we don't want in version control.
-project_path = str(Path(__file__).resolve().parents[1])
-output_data_dir = f"{project_path}{path_os.sep}output_data{path_os.sep}"
-Path(output_data_dir).mkdir(parents=True, exist_ok=True)
+
+def remove_read_only_modules(config_before):
+    if config_before.get("ietf-yang-library:yang-library"):
+        del config_before["ietf-yang-library:yang-library"]
+    if config_before.get("ietf-yang-library:modules-state"):
+        del config_before["ietf-yang-library:modules-state"]
+
 
 def nso_get_device_config(nso_api_url: str, username: str, password: str, device: str) -> dict:
     """
@@ -39,7 +49,9 @@ def nso_get_device_config(nso_api_url: str, username: str, password: str, device
                     "Accept": "application/yang-data+json"})
     configuration_result = req.request("GET", url, headers=headers)
     config_before_string = configuration_result.data.decode()
-    return json.loads(config_before_string)["tailf-ncs:config"]
+    config_before = json.loads(config_before_string)["tailf-ncs:config"]
+    remove_read_only_modules(config_before)
+    return config_before
 
 
 def xe_system_get_interface_ip_address(config_before: dict) -> dict:
@@ -106,21 +118,20 @@ def print_and_test_configs(device_name, config_before_dict, config_leftover_dict
     nso_device = os.environ.get("NSO_DEVICE", device_name)
     test = os.environ.get("TEST", "False")
 
-    print(json.dumps(oc, indent=2))
-
     # Determine the project root dir, where we will create our output_data dir (if it doesn't exist).
     # output_data_dir is meant to contain data/config files that we don't want in version control.
-    project_path = str(Path(__file__).resolve().parents[1])
-    output_data_dir = os.path.join(project_path, "output_data")
+    # project_path = str(Path(__file__).resolve().parents[1])
+    project_path = os.getcwd()
+    output_data_dir = f"{project_path}{path_os.sep}output_data{path_os.sep}"
     Path(output_data_dir).mkdir(parents=True, exist_ok=True)
 
-    device_path = os.path.join(output_data_dir, nso_device)
-    with open(f"{device_path}_{config_name}.json", "w") as b:
+    print(json.dumps(oc, indent=4))
+    with open(f"{output_data_dir}{nso_device}{config_name}.json", "w") as b:
         b.write(json.dumps(config_before_dict, indent=4))
-    with open(f"{output_data_dir}{nso_device}_{config_remaining_name}.json", "w") as a:
+    with open(f"{output_data_dir}{nso_device}{config_remaining_name}.json", "w") as a:
         a.write(json.dumps(config_leftover_dict, indent=4))
-    with open(f"{output_data_dir}{nso_device}_{oc_name}.json", "w") as o:
-        o.write(json.dumps(oc, indent=2))
+    with open(f"{output_data_dir}{nso_device}{oc_name}.json", "w") as o:
+        o.write(json.dumps(oc, indent=4))
 
     if len(translation_notes) > 0:
         # Only print to file, if actual notes exist.
@@ -131,7 +142,6 @@ def print_and_test_configs(device_name, config_before_dict, config_leftover_dict
 
     if test == "True":
         test_nso_program_oc(nso_api_url, nso_username, nso_password, nso_device, oc["mdd:openconfig"] if "mdd:openconfig" in oc else oc)
-
 
 def get_nso_creds():
     nso_api_url = os.environ.get("NSO_URL")
@@ -154,15 +164,21 @@ def get_interface_type_number_and_subinterface(interface: str) -> Tuple[str, str
 
     return interface_name, interface_number
 
-
 def get_index_or_default(obj, index, default = {}):
     try:
         return obj[index]
     except:
         return default
 
-
 def get_interface_number_split(interface_number: str) -> Tuple[int, int]:
     number_split = interface_number.split('.')
 
     return tuple(number_split) if len(number_split) > 1 else (number_split[0], 0)
+
+def is_valid_ip(ip_str):
+    try:
+        ipaddress.ip_address(ip_str)
+
+        return True
+    except ValueError:
+        return False

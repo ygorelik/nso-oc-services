@@ -20,16 +20,35 @@ elif reading in from file:
 - NSO_NED_FILE (path and filename)
 """
 
+import sys
 import copy
 import os
+from importlib.util import find_spec
+if (find_spec("package_nso_to_oc") is not None):
+    from package_nso_to_oc.xe import main_xe
+    from package_nso_to_oc.xr import main_xr
+    from package_nso_to_oc import common
+else:
+    import common
+    from xe import main_xe
+    from xr import main_xr
+from pathlib import Path, os as path_os
 
-import common
-from xe import main_xe
-from xr import main_xr
+def main():
+    sys.path.append(".")
+    sys.path.append("../")
+    sys.path.append("../../")
+    sys.path.append("../../../")
 
+    if os.environ.get("NSO_URL", False) and os.environ.get("NSO_NED_FILE", False):
+        print("environment variable NSO_URL or NSO_NED_FILE must be set: not both")
+        exit()
+    elif not os.environ.get("NSO_URL", False) and not os.environ.get("NSO_NED_FILE", False):
+        print("environment variable NSO_URL or NSO_NED_FILE must be set")
+        exit()
 
-if __name__ == "__main__":
     nso_api_url = os.environ.get("NSO_URL", 'http://localhost')
+    nso_ned_file = os.environ.get("NSO_NED_FILE", False)
     nso_username = os.environ.get("NSO_USERNAME", "admin")
     nso_password = os.environ.get("NSO_PASSWORD", "admin")
     nso_device = os.environ.get("NSO_DEVICE", "xr")
@@ -52,3 +71,6 @@ if __name__ == "__main__":
     oc_name = "_openconfig"
     common.print_and_test_configs(nso_device, config_before_dict, configs_leftover, oc, config_name,
                                   config_remaining_name, oc_name, translation_notes)
+
+if __name__ == '__main__':
+    main()
