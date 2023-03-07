@@ -6,12 +6,10 @@ This script is used by xe_network_instances.py to translate BGP configs from NED
 import copy
 from importlib.util import find_spec
 
-if (find_spec("package_nso_to_oc") is not None):
+if find_spec("package_nso_to_oc") is not None:
     from package_nso_to_oc import common
-    from package_nso_to_oc.xe import common_xe
 else:
     import common
-    from xe import common_xe
 
 ospf_network_types = {
     "broadcast": "BROADCAST_NETWORK",
@@ -67,9 +65,9 @@ def configure_xe_bgp(net_inst, config_before, config_leftover, network_instances
         else:
             process_address_family_vrf(instance_name, bgp_protocol_bgp, oc_bgp_afi, bgp_before[0], bgp_leftover[0])
 
-        if bgp_leftover[0].get("bgp", {}).get("default", {}).get("ipv4-unicast") != None:
+        if bgp_leftover[0].get("bgp", {}).get("default", {}).get("ipv4-unicast"):
             del bgp_leftover[0]["bgp"]["default"]["ipv4-unicast"]
-        if bgp_leftover[0].get("bgp", {}).get("default") != None and len(bgp_leftover[0]["bgp"]["default"]) == 0:
+        if bgp_leftover[0].get("bgp", {}).get("default") and len(bgp_leftover[0]["bgp"]["default"]) == 0:
             del bgp_leftover[0]["bgp"]["default"]
 
         if len(oc_bgp_afi) == 0:
@@ -100,7 +98,7 @@ def configure_xe_bgp_redistribution(net_inst, config_before, config_leftover, ne
     bgp_before = config_before.get("tailf-ned-cisco-ios:router", {"bgp": []}).get("bgp")
     bgp_leftover = config_leftover.get("tailf-ned-cisco-ios:router", {"bgp": []}).get("bgp")
 
-    if bgp_before == None or len(bgp_before) == 0:
+    if bgp_before is None or len(bgp_before) == 0:
         return
 
     redistribute = None
@@ -135,12 +133,12 @@ def configure_xe_bgp_redistribution(net_inst, config_before, config_leftover, ne
     process_redistribute(net_inst, redistribute, redistribute_leftover)
 
     if instance_name == "default":
-        if len(afi) > 0 and redistribute_leftover != None and len(redistribute_leftover) == 0:
+        if len(afi) > 0 and redistribute_leftover and len(redistribute_leftover) == 0:
             del bgp_leftover[0]["address-family"]["ipv4"][ipv4_index]["redistribute"]
-        elif redistribute_leftover != None and len(redistribute_leftover) == 0:
+        elif redistribute_leftover and len(redistribute_leftover) == 0:
             del bgp_leftover[0]["redistribute"]
     else:
-        if len(afi) > 0 and redistribute_leftover != None and len(redistribute_leftover) == 0:
+        if len(afi) > 0 and redistribute_leftover and len(redistribute_leftover) == 0:
             del bgp_leftover[0]["address-family"]["with-vrf"]["ipv4"][ipv4_index]["vrf"][vrf_index]["redistribute"]
 
 def get_global_redistribute(ned_bgp):
