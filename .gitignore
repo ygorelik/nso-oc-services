@@ -61,6 +61,6 @@ MANIFEST
 
 ### Test env ###
 test-oc-services/
-oc-service-dicovery/python/actions/test_objects.py
-oc-service-dicovery/load-dir
+oc-service-discovery/python/actions/test_objects.py
+oc-service-discovery/load-dir
 temp/
