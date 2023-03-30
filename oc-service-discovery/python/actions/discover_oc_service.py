@@ -261,7 +261,7 @@ if __name__ == '__main__':
     import ncs
 
     mylog = ncs.log.Log(logging.getLogger(__name__))
-    dev_name = 'xe-65'
+    dev_name = 'xe'
     ned = 'cisco-ios-cli'
     oc_service = 'network-instance'
     oc_cfg, left = get_oc_service(dev_name, ned, oc_service, mylog)

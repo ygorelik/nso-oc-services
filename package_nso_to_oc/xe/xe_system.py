@@ -972,7 +972,7 @@ def xe_system_logging(config_before: dict, config_leftover: dict, if_ip: dict) -
     intf_ip_name_dict = common.xe_system_get_interface_ip_address(config_before)
 
     # LOGGING BUFFERED
-    if logging.get("buffered"):
+    if logging and logging.get("buffered"):
         temp_logging_buffered = {
             "openconfig-system-ext:buffered": set_logging_buffered(logging, config_leftover, oc_system_logging)
         }
@@ -1014,7 +1014,7 @@ def xe_system_logging(config_before: dict, config_leftover: dict, if_ip: dict) -
         del config_leftover["tailf-ned-cisco-ios:logging"]["monitor"]["severity-level"]
 
     # LOGGING HOST
-    if logging.get("host"):
+    if logging and logging.get("host"):
         temp_logging_host = {
             "openconfig-system:remote-servers": set_logging_host(logging, config_leftover,
                                                                 oc_system_logging, if_ip,
@@ -1309,9 +1309,9 @@ def xe_system_timestamps(config_before: dict, config_leftover: dict) -> None:
             del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["log"]["uptime"]
         if len(config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["log"]) == 0:
             del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]["log"]
-    # Clean up timestamps
-    if len(config_leftover["tailf-ned-cisco-ios:service"].get("timestamps")) == 0:
-        del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]
+        # Clean up timestamps
+        if len(config_leftover["tailf-ned-cisco-ios:service"].get("timestamps")) == 0:
+            del config_leftover["tailf-ned-cisco-ios:service"]["timestamps"]
 
 
 def set_timestamps(service, config_leftover, timestamps):

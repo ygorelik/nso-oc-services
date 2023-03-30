@@ -8,8 +8,10 @@ from importlib.util import find_spec
 
 if find_spec("package_nso_to_oc") is not None:
     from package_nso_to_oc import common
+    from package_nso_to_oc.xe import common_xe
 else:
     import common
+    from xe import common_xe
 
 ospf_network_types = {
     "broadcast": "BROADCAST_NETWORK",
@@ -31,94 +33,95 @@ peers = {}
 def configure_xe_bgp(net_inst, config_before, config_leftover, network_instances_notes):
     neighbors.clear()
     peers.clear()
+    bgp_before = config_before.get("tailf-ned-cisco-ios:router", {"bgp": []}).get("bgp")
+
+    if bgp_before == None or len(bgp_before) == 0:
+        return
+
     instance_name = net_inst["openconfig-network-instance:name"]
     net_protocols = net_inst["openconfig-network-instance:protocols"]["openconfig-network-instance:protocol"]
     bgp_protocol = get_bgp_protocol(net_protocols)
-    bgp_before = config_before.get("tailf-ned-cisco-ios:router", {"bgp": []}).get("bgp")
     bgp_leftover = config_leftover.get("tailf-ned-cisco-ios:router", {"bgp": []}).get("bgp")
     bgp_protocol_bgp = bgp_protocol["openconfig-network-instance:bgp"]
 
-    if bgp_before != None and len(bgp_before) > 0:
-        bgp_protocol["openconfig-network-instance:config"]["openconfig-network-instance:enabled"] = True
-        bgp_protocol_bgp["openconfig-network-instance:global"] = {
-            "openconfig-network-instance:config": {
-                "openconfig-network-instance:as": bgp_before[0].get("as-no")
-            }
+    bgp_protocol["openconfig-network-instance:config"]["openconfig-network-instance:enabled"] = True
+    bgp_protocol_bgp["openconfig-network-instance:global"] = {
+        "openconfig-network-instance:config": {
+            "openconfig-network-instance:as": bgp_before[0].get("as-no")
         }
-        oc_bgp_global = bgp_protocol_bgp["openconfig-network-instance:global"]
+    }
+    oc_bgp_global = bgp_protocol_bgp["openconfig-network-instance:global"]
 
-        # remaining will need asn
-        # if bgp_leftover[0].get("as-no") != None:
-        #     del bgp_leftover[0]["as-no"]
+    # remaining will need asn
+    # if bgp_leftover[0].get("as-no") != None:
+    #     del bgp_leftover[0]["as-no"]
 
-        if instance_name == "default":
-            process_bgp_global(oc_bgp_global, bgp_before[0], bgp_leftover[0])
-            process_neighbor_and_neighbor_tag(False, ATTR_PEER, bgp_before[0], bgp_leftover[0])
-            process_neighbor_and_neighbor_tag(False, ATTR_NEIGHBOR, bgp_before[0], bgp_leftover[0])
+    if instance_name == "default":
+        process_bgp_global(oc_bgp_global, bgp_before[0], bgp_leftover[0])
+        process_neighbor_and_neighbor_tag(False, ATTR_PEER, bgp_before[0], bgp_leftover[0])
+        process_neighbor_and_neighbor_tag(False, ATTR_NEIGHBOR, bgp_before[0], bgp_leftover[0])
 
-        # if bgp_before[0].get("bgp", {}).get("default", {}).get("ipv4-unicast", True) == False:
-        oc_bgp_global["openconfig-network-instance:afi-safis"] = {"openconfig-network-instance:afi-safi": []}
-        oc_bgp_afi = oc_bgp_global["openconfig-network-instance:afi-safis"]["openconfig-network-instance:afi-safi"]
-        
-        if instance_name == "default":
-            process_address_family_default(bgp_protocol_bgp, oc_bgp_afi, bgp_before[0], bgp_leftover[0])
-        else:
-            process_address_family_vrf(instance_name, bgp_protocol_bgp, oc_bgp_afi, bgp_before[0], bgp_leftover[0])
+    # if bgp_before[0].get("bgp", {}).get("default", {}).get("ipv4-unicast", True) == False:
+    oc_bgp_global["openconfig-network-instance:afi-safis"] = {"openconfig-network-instance:afi-safi": []}
+    oc_bgp_afi = oc_bgp_global["openconfig-network-instance:afi-safis"]["openconfig-network-instance:afi-safi"]
 
-        if bgp_leftover[0].get("bgp", {}).get("default", {}).get("ipv4-unicast"):
-            del bgp_leftover[0]["bgp"]["default"]["ipv4-unicast"]
-        if bgp_leftover[0].get("bgp", {}).get("default") and len(bgp_leftover[0]["bgp"]["default"]) == 0:
-            del bgp_leftover[0]["bgp"]["default"]
-
-        if len(oc_bgp_afi) == 0:
-            del oc_bgp_global["openconfig-network-instance:afi-safis"]
-        if len(peers.values()) == 0:
-            del bgp_protocol_bgp["openconfig-network-instance:peer-groups"]
-        else:
-            bgp_protocol_bgp["openconfig-network-instance:peer-groups"][
-                "openconfig-network-instance:peer-group"] = list(peers.values())
-        if len(neighbors.values()) == 0:
-            del bgp_protocol_bgp["openconfig-network-instance:neighbors"]
-        else:
-            bgp_protocol_bgp["openconfig-network-instance:neighbors"][
-                "openconfig-network-instance:neighbor"] = list(neighbors.values())
+    if instance_name == "default":
+        process_address_family_default(bgp_protocol_bgp, oc_bgp_afi, bgp_before[0], bgp_leftover[0])
     else:
-        bgp_protocol["openconfig-network-instance:config"]["openconfig-network-instance:enabled"] = False
-        
-        return
-    
+        process_address_family_vrf(instance_name, bgp_protocol_bgp, oc_bgp_afi, bgp_before[0], bgp_leftover[0])
+
+    if bgp_leftover[0].get("bgp", {}).get("default", {}).get("ipv4-unicast") != None:
+        del bgp_leftover[0]["bgp"]["default"]["ipv4-unicast"]
+    if bgp_leftover[0].get("bgp", {}).get("default") != None and len(bgp_leftover[0]["bgp"]["default"]) == 0:
+        del bgp_leftover[0]["bgp"]["default"]
+
+    if len(oc_bgp_afi) == 0:
+        del oc_bgp_global["openconfig-network-instance:afi-safis"]
+    if len(peers.values()) == 0:
+        del bgp_protocol_bgp["openconfig-network-instance:peer-groups"]
+    else:
+        bgp_protocol_bgp["openconfig-network-instance:peer-groups"][
+            "openconfig-network-instance:peer-group"] = list(peers.values())
+    if len(neighbors.values()) == 0:
+        del bgp_protocol_bgp["openconfig-network-instance:neighbors"]
+    else:
+        bgp_protocol_bgp["openconfig-network-instance:neighbors"][
+            "openconfig-network-instance:neighbor"] = list(neighbors.values())
+
     network_instances_notes += xe_bgp_notes
 
-def configure_xe_bgp_redistribution(net_inst, config_before, config_leftover, network_instances_notes):
+def configure_xe_bgp_redistribution(net_inst, config_before, config_leftover):
+    bgp_before = config_before.get("tailf-ned-cisco-ios:router", {"bgp": []}).get("bgp")
+
+    if bgp_before == None or len(bgp_before) == 0:
+        return
+
     instance_name = net_inst["openconfig-network-instance:name"]
     bgp_protocol = get_bgp_protocol(net_inst["openconfig-network-instance:protocols"][
         "openconfig-network-instance:protocol"])
     afi = (bgp_protocol.get("openconfig-network-instance:bgp", {}).get("openconfig-network-instance:global", {})
         .get("openconfig-network-instance:afi-safis", {}).get("openconfig-network-instance:afi-safi", []))
-    bgp_before = config_before.get("tailf-ned-cisco-ios:router", {"bgp": []}).get("bgp")
     bgp_leftover = config_leftover.get("tailf-ned-cisco-ios:router", {"bgp": []}).get("bgp")
-
-    if bgp_before is None or len(bgp_before) == 0:
-        return
-
     redistribute = None
     redistribute_leftover = {}
-    
-    if instance_name == "default":
-        if len(afi) > 0:
+    vrf_index = None
+    ipv4_index = None
+
+    if len(afi) > 0:
+        if "with-vrf" in bgp_leftover[0]["address-family"] and instance_name != "default":
+            (redistribute, ipv4_index, vrf_index) = get_vrf_redistribute(instance_name, bgp_before[0])
+        else:
             (redistribute, ipv4_index) = get_global_redistribute(bgp_before[0])
 
-            if len(bgp_leftover[0].get("address-family", {}).get("ipv4", [])) > 0:
+    if vrf_index is None and ipv4_index != None:
+        if len(afi) > 0:
+            if (len(bgp_leftover[0].get("address-family", {}).get("ipv4", [])) > 0
+                and bgp_leftover[0]["address-family"]["ipv4"][ipv4_index]):
                 redistribute_leftover = bgp_leftover[0]["address-family"]["ipv4"][ipv4_index].get("redistribute")
             else:
                 redistribute_leftover = {}
-        else:
-            redistribute = bgp_before[0].get("redistribute")
-            redistribute_leftover = bgp_leftover[0].get("redistribute")
-    else:
+    elif vrf_index != None and ipv4_index != None:
         if len(afi) > 0:
-            (redistribute, ipv4_index, vrf_index) = get_vrf_redistribute(instance_name, bgp_before[0])
-
             if len(bgp_leftover[0].get("address-family", {}).get("with-vrf", {}).get("ipv4", [])) > ipv4_index:
                 ipv4_vrf = bgp_leftover[0]["address-family"]["with-vrf"]["ipv4"][ipv4_index]
 
@@ -130,15 +133,21 @@ def configure_xe_bgp_redistribution(net_inst, config_before, config_leftover, ne
             else:
                 redistribute_leftover = {}
 
-    process_redistribute(net_inst, redistribute, redistribute_leftover)
+    common_xe.process_redistribute(net_inst, redistribute, redistribute_leftover, "BGP")
 
-    if instance_name == "default":
-        if len(afi) > 0 and redistribute_leftover and len(redistribute_leftover) == 0:
+    if vrf_index is None and ipv4_index != None:
+        if (len(afi) > 0 and redistribute_leftover != None and len(redistribute_leftover) == 0
+            and bgp_leftover[0]["address-family"]["ipv4"][ipv4_index]):
+
             del bgp_leftover[0]["address-family"]["ipv4"][ipv4_index]["redistribute"]
-        elif redistribute_leftover and len(redistribute_leftover) == 0:
+        elif (redistribute_leftover != None and len(redistribute_leftover) == 0
+            and bgp_leftover[0].get("redistribute")):
+
             del bgp_leftover[0]["redistribute"]
-    else:
-        if len(afi) > 0 and redistribute_leftover and len(redistribute_leftover) == 0:
+    elif vrf_index != None and ipv4_index != None:
+        if (len(afi) > 0 and redistribute_leftover != None and len(redistribute_leftover) == 0
+            and bgp_leftover[0]["address-family"]["with-vrf"]["ipv4"][ipv4_index]["vrf"][vrf_index]):
+
             del bgp_leftover[0]["address-family"]["with-vrf"]["ipv4"][ipv4_index]["vrf"][vrf_index]["redistribute"]
 
 def get_global_redistribute(ned_bgp):
@@ -156,80 +165,6 @@ def get_vrf_redistribute(vrf_name, ned_bgp):
                     return (vrf.get("redistribute"), ipv4_index, vrf_index)
     
     return (None, None, None)
-
-def process_redistribute(net_inst, redistribute, redistribute_leftover):
-    if not redistribute:
-        return
-
-    net_inst["openconfig-network-instance:table-connections"] = {
-        "openconfig-network-instance:table-connection": []
-    }
-    table_connections = net_inst["openconfig-network-instance:table-connections"][
-        "openconfig-network-instance:table-connection"]
-
-    if "connected" in redistribute:
-        create_protocol_config(table_connections, redistribute, redistribute_leftover, "connected")
-    if "static" in redistribute:
-        create_protocol_config(table_connections, redistribute, redistribute_leftover, "static")
-    if "ospf" in redistribute:
-        create_protocol_config(table_connections, redistribute, redistribute_leftover, "ospf")
-
-def create_protocol_config(table_connections, redistribute, redistribute_leftover, protocol):
-    if type(redistribute[protocol]) == list:
-        updated_prot_list = []
-
-        for prot_index, prot_item in enumerate(redistribute[protocol]):
-            proto_config = append_new_to_table_connections(protocol, table_connections)
-            if len(redistribute_leftover.get(protocol, [])) > prot_index:
-                prot_item_leftover = redistribute_leftover[protocol][prot_index]
-            else:
-                prot_item_leftover = None
-
-            process_protocol(proto_config, prot_item, prot_item_leftover)
-
-            if prot_item_leftover and len(prot_item_leftover) == 0:
-                redistribute_leftover[protocol][prot_index] = None
-        
-        for leftover_prot in redistribute_leftover.get(protocol, []):
-            if leftover_prot:
-                updated_prot_list.append(leftover_prot)
-        
-        if len(updated_prot_list) > 0:
-            redistribute_leftover[protocol] = updated_prot_list
-        else:
-            del redistribute_leftover[protocol]
-    else:
-        proto_config = append_new_to_table_connections(protocol, table_connections)
-        temp_redistribute_leftover = redistribute_leftover.get(protocol) if redistribute_leftover else None
-        process_protocol(proto_config, redistribute[protocol], temp_redistribute_leftover)
-
-        if (redistribute_leftover and redistribute_leftover[protocol] != None 
-            and len(redistribute_leftover[protocol]) == 0):
-            del redistribute_leftover[protocol]
-
-def append_new_to_table_connections(protocol, table_connections):
-    proto_config = {
-        "openconfig-network-instance:src-protocol": redistribute_type[protocol],
-        "openconfig-network-instance:dst-protocol": "BGP",
-        "openconfig-network-instance:address-family": "IPV4"
-    }
-    proto_config_parent = copy.deepcopy(proto_config)
-    proto_config_parent["openconfig-network-instance:config"] = proto_config
-    table_connections.append(proto_config_parent)
-
-    return proto_config
-
-def process_protocol(proto_config, redistribute_protocol, redistribute_protocol_leftover):
-    if "id" in redistribute_protocol:
-        proto_config["openconfig-network-instance-ext:src-protocol-process-number"] = redistribute_protocol["id"]
-
-        if (redistribute_protocol_leftover and redistribute_protocol_leftover.get("id")):
-            del redistribute_protocol_leftover["id"]
-    if "route-map" in redistribute_protocol:
-        proto_config["openconfig-network-instance:import-policy"] = redistribute_protocol["route-map"]
-
-        if redistribute_protocol_leftover and redistribute_protocol_leftover.get("route-map"):
-            del redistribute_protocol_leftover["route-map"]
 
 def get_bgp_protocol(net_protocols):   
     bgp_protocol = {
@@ -456,7 +391,7 @@ def process_address_family_default(bgp_protocol_bgp, oc_bgp_afi, bgp_config_befo
             process_neighbor_and_neighbor_tag(True, ATTR_NEIGHBOR, afi_ipv4, 
                 afi_ipv4_leftover, "IPV4_UNICAST")
 
-            if afi_ipv4_leftover != None and afi_ipv4_leftover.get("af"):
+            if afi_ipv4_leftover != None and afi_ipv4_leftover.get("af") and len(afi_ipv4_leftover) == 1:
                 del afi_ipv4_leftover["af"]
             if afi_ipv4_leftover != None and len(afi_ipv4_leftover) == 0:
                 bgp_config_leftover["address-family"]["ipv4"][index] = None
@@ -470,7 +405,7 @@ def process_address_family_default(bgp_protocol_bgp, oc_bgp_afi, bgp_config_befo
             process_neighbor_and_neighbor_tag(True, ATTR_NEIGHBOR, afi_vpnv4, 
                 afi_vpnv4_leftover, "L3VPN_IPV4_UNICAST")
 
-            if afi_vpnv4_leftover != None and afi_vpnv4_leftover.get("af"):
+            if afi_vpnv4_leftover != None and afi_vpnv4_leftover.get("af") and len(afi_vpnv4_leftover) == 1:
                 del afi_vpnv4_leftover["af"]
             # bgp_config_leftover.get("address-family", {}).get("vpnv4", [])[index] = None
     
@@ -497,10 +432,12 @@ def process_address_family_vrf(vrf_name, bgp_protocol_bgp, oc_bgp_afi, bgp_confi
                     process_neighbor_and_neighbor_tag(True, ATTR_NEIGHBOR, afi_ipv4_vrf, 
                         afi_vrf_ipv4_leftover, "IPV4_UNICAST")
 
-                    if afi_vrf_ipv4_leftover != None and afi_vrf_ipv4_leftover.get("name"):
+                    if (afi_vrf_ipv4_leftover != None and afi_vrf_ipv4_leftover.get("name")
+                        and len(afi_vrf_ipv4_leftover) == 1):
                         del afi_vrf_ipv4_leftover["name"] 
 
-            if afi_vrf_leftover[index] != None and afi_vrf_leftover[index].get("af"):
+            if (afi_vrf_leftover[index] != None and afi_vrf_leftover[index].get("af")
+                and len(afi_vrf_leftover[index]) == 1):
                 del afi_vrf_leftover[index]["af"]
     
     if len(bgp_config_before.get("address-family", {}).get("ipv6-with-vrf", {}).get("ipv6", [])) > 0:
@@ -529,10 +466,10 @@ def process_af_ipv4_unicast(afi_ipv4_before, afi_ipv4_after):
     }
 
     # This funciton is used by both VRF and default instance. Default does not have name field.
-    if "name" in afi_ipv4_after:
-        del afi_ipv4_after["name"]
     if "default-information" in afi_ipv4_after:
         del afi_ipv4_after["default-information"]
+    if "name" in afi_ipv4_after and len(afi_ipv4_after) == 1:
+        del afi_ipv4_after["name"]
 
     return afi_data
 
@@ -577,10 +514,10 @@ def process_neighbor_and_neighbor_tag(is_afi_safi, attr_name, bgp_before, bgp_le
                 process_peer_group(neighbor, peer_or_neighbor, index, neighbor_leftover)
                 process_ttl_security(neighbor, peer_or_neighbor, index, neighbor_leftover)
         if len(neighbor_leftover) > index and neighbor_leftover[index] != None:
-            if "id" in neighbor_leftover[index]:
-                del neighbor_leftover[index]["id"]
             if "peer-group" in neighbor_leftover[index]:
                 del neighbor_leftover[index]["peer-group"]
+            if "id" in neighbor_leftover[index] and len(neighbor_leftover[index]) == 1:
+                del neighbor_leftover[index]["id"]
         if (len(neighbor_leftover) > index and neighbor_leftover[index] != None
             and len(neighbor_leftover[index]) == 0):
             neighbor_leftover[index] = None
@@ -676,7 +613,7 @@ def process_peer_and_neighbor_config(neighbor, peer_group_or_neighbor, index, ne
         delete_leftover_neighbor_prop("description", index, neighbor_leftover)
     if neighbor.get("password", {}).get("text"):
         peer_or_neighbor_config["openconfig-network-instance:auth-password"] = neighbor["password"]["text"]
-        del neighbor_leftover[index]["password"]["text"]
+        del neighbor_leftover[index]["password"]
         # delete_leftover_neighbor_prop("password", index, neighbor_leftover)
     if is_afi_safi:
         if neighbor.get("local-as", {}).get("as-no"):

@@ -9,13 +9,6 @@ from pathlib import Path, os as path_os
 from typing import Tuple
 
 
-if os.environ.get("NSO_URL", False) and os.environ.get("NSO_NED_FILE", False):
-    print("environment variable NSO_URL or NSO_NED_FILE must be set: not both")
-    exit()
-elif not os.environ.get("NSO_URL", False) and not os.environ.get("NSO_NED_FILE", False):
-    print("environment variable NSO_URL or NSO_NED_FILE must be set")
-    exit()
-
 # Different device OS
 XE = "xe"
 XR = "xr"
@@ -121,7 +114,7 @@ def print_and_test_configs(device_name, config_before_dict, config_leftover_dict
     # Determine the project root dir, where we will create our output_data dir (if it doesn't exist).
     # output_data_dir is meant to contain data/config files that we don't want in version control.
     # project_path = str(Path(__file__).resolve().parents[1])
-    project_path = os.getcwd()
+    project_path = os.environ.get("NSO_OC_SERVICES_PATH", os.getcwd()) 
     output_data_dir = f"{project_path}{path_os.sep}output_data{path_os.sep}"
     Path(output_data_dir).mkdir(parents=True, exist_ok=True)
 

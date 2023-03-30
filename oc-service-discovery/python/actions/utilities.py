@@ -66,6 +66,8 @@ def get_device_config(device_name):
         with ncs.maapi.Session(m, 'admin', 'system'):
             with m.start_read_trans() as t:
                 root = ncs.maagic.get_root(t)
+                if device_name not in root.devices.device:
+                    raise Exception(f"Wrong device name {device_name} is requested")
                 device = root.devices.device[device_name]
                 dev_flag = _ncs.maapi.CONFIG_JSON
                 dev_config = read_config(m, t.th, device.config._path, dev_flag)

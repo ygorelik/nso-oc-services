@@ -12,13 +12,13 @@ NCS_RUN_DIR ?= ${CURDIR}/test-oc-services
 DIR = ${CURDIR}
 
 all:
-	$(MAKE) -C packages/mdd/src all
-	$(MAKE) -C packages/oc-service-discovery/src all
+	$(MAKE) -C mdd/src all
+	$(MAKE) -C oc-service-discovery/src all
 .PHONY: all
 
 clean:
-	$(MAKE) -C packages/mdd/src clean
-	$(MAKE) -C packages/oc-service-discovery/src clean
+	$(MAKE) -C mdd/src clean
+	$(MAKE) -C oc-service-discovery/src clean
 .PHONY: clean
 
 stop:
@@ -39,9 +39,10 @@ test-setup:
 	ncs-setup --dest ${NCS_RUN_DIR}
 	cd ${NCS_RUN_DIR}; ln -sf ${DIR}/package_nso_to_oc
 	cd ${NCS_RUN_DIR}/packages; ln -sf ${DIR}/mdd; ln -sf ${DIR}/oc-service-discovery
-#	cd ${NCS_RUN_DIR}/packages; ln -sf /Users/ygorelik/neds/cisco-ios-cli-6.83 packages/cisco-ios-cli-6.83
-#	cd ${NCS_RUN_DIR}; ncs-netsim create-device packages/cisco-ios-cli-6.83 xe
-#	cd ${NCS_RUN_DIR}; ncs-netsim ncs-xml-init xe > ncs-cdb/xe-ncs-xml-init.xml
+	cd ${NCS_RUN_DIR}/packages; ln -sf /Users/ygorelik/nso-6.0.4/packages/neds/cisco-ios-cli-6.92
+	mkdir -p ${NCS_RUN_DIR}/netsim
+	cd ${NCS_RUN_DIR}; ncs-netsim create-device packages/cisco-ios-cli-6.92 xe
+	cd ${NCS_RUN_DIR}; ncs-netsim ncs-xml-init xe > ncs-cdb/xe-ncs-xml-init.xml
 .PHONY: test-setup
 
 test-reset:
