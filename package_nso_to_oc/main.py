@@ -22,24 +22,11 @@ elif reading in from file:
 
 import sys
 import copy
+import json
 import os
 from importlib.util import find_spec
-if (find_spec("package_nso_to_oc") is not None):
-    from package_nso_to_oc.xe import main_xe
-    from package_nso_to_oc.xr import main_xr
-    from package_nso_to_oc import common
-else:
-    import common
-    from xe import main_xe
-    from xr import main_xr
-from pathlib import Path, os as path_os
 
 def main():
-    sys.path.append(".")
-    sys.path.append("../")
-    sys.path.append("../../")
-    sys.path.append("../../../")
-
     if os.environ.get("NSO_URL", False) and os.environ.get("NSO_NED_FILE", False):
         print("environment variable NSO_URL or NSO_NED_FILE must be set: not both")
         exit()
@@ -57,7 +44,11 @@ def main():
 
     # Append any pertinent notes here. This will be printed out in output_data directory
     translation_notes = []
-    config_before_dict = common.nso_get_device_config(nso_api_url, nso_username, nso_password, nso_device)
+    if nso_api_url:
+        config_before_dict = common.nso_get_device_config(nso_api_url, nso_username, nso_password, nso_device)
+    elif nso_ned_file:
+        with open(nso_ned_file, "r") as f:
+            config_before_dict = json.load(f)
     configs_leftover = copy.deepcopy(config_before_dict)
     oc = {"mdd:openconfig": {}}
 
@@ -73,4 +64,19 @@ def main():
                                   config_remaining_name, oc_name, translation_notes)
 
 if __name__ == '__main__':
+    sys.path.append(".")
+    sys.path.append("../")
+    sys.path.append("../../")
+    sys.path.append("../../../")
+
+    # Python won't let us place these duplicate imports in a function...
+    if find_spec("package_nso_to_oc") is not None:
+        from package_nso_to_oc.xe import main_xe
+        from package_nso_to_oc.xr import main_xr
+        from package_nso_to_oc import common
+    else:
+        import common
+        from xe import main_xe
+        from xr import main_xr
+
     main()
